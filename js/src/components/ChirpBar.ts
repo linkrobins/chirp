@@ -26,63 +26,79 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
     if (!joined) {
       actions.push(
-        m(Button, {
-          className: 'Button Button--primary Button--size-sm',
-          loading: state.connecting,
-          onclick: () => state.join(id, false),
-        }, t('join_listen'))
+        m(
+          Button,
+          {
+            className: 'Button Button--primary Button--size-sm',
+            loading: state.connecting,
+            onclick: () => state.join(id, false),
+          },
+          t('join_listen')
+        )
       );
     } else {
       if (state.canPublish) {
         actions.push(
-          m(Button, {
-            className: 'Button Button--size-sm',
-            icon: state.muted ? 'fas fa-microphone-slash' : 'fas fa-microphone',
-            onclick: () => state.setMuted(!state.muted),
-          }, state.muted ? t('unmute') : t('mute'))
+          m(
+            Button,
+            {
+              className: 'Button Button--size-sm',
+              icon: state.muted ? 'fas fa-microphone-slash' : 'fas fa-microphone',
+              onclick: () => state.setMuted(!state.muted),
+            },
+            state.muted ? t('unmute') : t('mute')
+          )
         );
       } else if (discussion.attribute('canChirpSpeak')) {
         actions.push(
-          m(Button, {
-            className: 'Button Button--size-sm',
-            icon: 'fas fa-microphone',
-            loading: state.connecting,
-            onclick: () => state.join(id, true),
-          }, t('take_mic'))
+          m(
+            Button,
+            {
+              className: 'Button Button--size-sm',
+              icon: 'fas fa-microphone',
+              loading: state.connecting,
+              onclick: () => state.join(id, true),
+            },
+            t('take_mic')
+          )
         );
       }
 
       actions.push(
-        m(Button, {
-          className: 'Button Button--size-sm',
-          onclick: () => state.leave(),
-        }, t('leave'))
+        m(
+          Button,
+          {
+            className: 'Button Button--size-sm',
+            onclick: () => state.leave(),
+          },
+          t('leave')
+        )
       );
     }
 
     if (discussion.attribute('canChirpStart')) {
       actions.push(
-        m(Button, {
-          className: 'Button Button--size-sm Button--danger',
-          onclick: () => {
-            if (!confirm(String(t('confirm_end')))) return;
-            app
-              .request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` })
-              .then(() => {
+        m(
+          Button,
+          {
+            className: 'Button Button--size-sm Button--danger',
+            onclick: () => {
+              if (!confirm(String(t('confirm_end')))) return;
+              app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {
                 state.leave();
                 discussion.pushAttributes({ chirpIsLive: false });
                 m.redraw();
               });
+            },
           },
-        }, t('end_room'))
+          t('end_room')
+        )
       );
     }
 
     return m('.ChirpBar', [
       m('span.ChirpBar-status', [m('span.ChirpBadge', t('live_badge')), t('live_banner')]),
-      joined && state.participantCount > 0
-        ? m('span.ChirpBar-count', t('listeners', { count: state.participantCount }))
-        : null,
+      joined && state.participantCount > 0 ? m('span.ChirpBar-count', t('listeners', { count: state.participantCount })) : null,
       m('.ChirpBar-actions', actions),
     ]);
   }

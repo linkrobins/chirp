@@ -15,11 +15,7 @@ app.initializers.add('linkrobins-chirp', () => {
   extend('flarum/forum/components/DiscussionListItem', 'infoItems', function (this: any, items: any) {
     const discussion = this.attrs.discussion;
     if (discussion?.attribute?.('chirpIsLive')) {
-      items.add(
-        'chirp-live',
-        m('span.ChirpBadge', app.translator.trans('linkrobins-chirp.forum.live_badge')),
-        100
-      );
+      items.add('chirp-live', m('span.ChirpBadge', app.translator.trans('linkrobins-chirp.forum.live_badge')), 100);
     }
   });
 
@@ -37,21 +33,25 @@ app.initializers.add('linkrobins-chirp', () => {
 
     items.add(
       'chirp-go-live',
-      m(Button, {
-        icon: 'fas fa-microphone',
-        onclick: () =>
-          app
-            .request<any>({
-              method: 'POST',
-              url: `${app.forum.attribute('apiUrl')}/chirp/rooms`,
-              body: { discussionId: Number(discussion.id()) },
-            })
-            .then(async (res) => {
-              discussion.pushAttributes({ chirpIsLive: true });
-              await state.connect(Number(discussion.id()), res.endpoint, res.token, true);
-              m.redraw();
-            }),
-      }, app.translator.trans('linkrobins-chirp.forum.go_live'))
+      m(
+        Button,
+        {
+          icon: 'fas fa-microphone',
+          onclick: () =>
+            app
+              .request<any>({
+                method: 'POST',
+                url: `${app.forum.attribute('apiUrl')}/chirp/rooms`,
+                body: { discussionId: Number(discussion.id()) },
+              })
+              .then(async (res) => {
+                discussion.pushAttributes({ chirpIsLive: true });
+                await state.connect(Number(discussion.id()), res.endpoint, res.token, true);
+                m.redraw();
+              }),
+        },
+        app.translator.trans('linkrobins-chirp.forum.go_live')
+      )
     );
   });
 });
