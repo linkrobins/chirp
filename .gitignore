@@ -1,0 +1,10 @@
+/vendor
+js/node_modules
+js/dist/*.map
+dist-typings
+composer.lock
+.DS_Store
+*.log
+.phpunit.cache
+.phpunit.result.cache
+tests/integration/tmp

@@ -1,0 +1,62 @@
+// Chirp — live audio bar + badges. Sized with the FontSizer contract vars so
+// text-resize controls compose (no-ops when none installed).
+
+.ChirpBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #e8442e;
+  color: #fff;
+  font-size: calc(11px * var(--lr-ui-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: chirp-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes chirp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.ChirpBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: var(--border-radius);
+  background: var(--control-bg);
+  border: 1px solid var(--control-color);
+
+  .ChirpBar-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: calc(13px * var(--lr-ui-scale, 1));
+  }
+
+  .ChirpBar-count {
+    color: var(--muted-color);
+    font-size: calc(12px * var(--lr-ui-scale, 1));
+  }
+
+  .ChirpBar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+}

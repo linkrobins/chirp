@@ -1,0 +1,38 @@
+linkrobins-chirp:
+  admin:
+    key_label: Chirp channel key
+    key_help: >
+      Paste the channel key from your linkrobins.com dashboard → Chirp. That's
+      it — your forum connects to your channel's dedicated audio server
+      automatically. Leave it blank to disconnect.
+    connected: >
+      ✓ Connected — your channel is live-ready. Moderators can go live on any
+      discussion; members can take the mic up to your channel's speaker slots.
+    disconnected: >
+      Not connected yet. Paste your channel key below — get one from your
+      linkrobins.com dashboard → Chirp.
+    service_url_label: Service URL
+    service_url_help: Only change this if support asks you to.
+
+  forum:
+    go_live: Go live
+    end_room: End room
+    live_badge: LIVE
+    join_listen: Listen in
+    leave: Leave
+    take_mic: Take the mic
+    leave_mic: Leave the stage
+    mute: Mute
+    unmute: Unmute
+    connecting: Connecting…
+    listeners: "{count, plural, one {# listening} other {# listening}}"
+    live_banner: This discussion is live right now.
+    ended_toast: The room has ended.
+    confirm_end: End the room for everyone?
+    mic_denied: Your browser blocked the microphone — check the permission and try again.
+
+  lib:
+    error:
+      chirp_not_configured_message: Chirp isn't set up on this forum yet — an admin needs to paste the channel key.
+      chirp_channel_busy_message: Your channel already has a live room. End it first, or add another channel for simultaneous rooms.
+      chirp_slots_full_message: Every speaker slot is taken right now — you can keep listening, and grab the mic when someone steps down.
