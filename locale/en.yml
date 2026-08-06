@@ -30,6 +30,12 @@ linkrobins-chirp:
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
+    channel_busy_elsewhere: >
+      Your channel is already live on another discussion. End that room first —
+      or add another channel on linkrobins.com to run rooms side by side.
+    not_configured: >
+      Chirp isn't connected yet. An admin needs to paste the channel key in
+      Admin → Chirp.
 
   lib:
     error:

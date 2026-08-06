@@ -19,6 +19,7 @@
 use Flarum\Extend;
 use Flarum\Settings\Event\Saved;
 use LinkRobins\Chirp\Api\DiscussionFields;
+use LinkRobins\Chirp\Api\ForumFields;
 use LinkRobins\Chirp\Http\EndRoomController;
 use LinkRobins\Chirp\Http\JoinTokenController;
 use LinkRobins\Chirp\Http\StartRoomController;
@@ -50,6 +51,10 @@ return [
     // Live-room state + gates on every discussion payload (fail-closed).
     (new Extend\ApiResource(\Flarum\Api\Resource\DiscussionResource::class))
         ->fields(DiscussionFields::class),
+
+    // Channel-wide: which discussion (if any) is live right now.
+    (new Extend\ApiResource(\Flarum\Api\Resource\ForumResource::class))
+        ->fields(ForumFields::class),
 
     (new Extend\Model(\Flarum\Discussion\Discussion::class))
         ->hasOne('chirpRoom', Room::class, 'discussion_id'),
