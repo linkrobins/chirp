@@ -32,6 +32,8 @@ linkrobins-chirp:
     connecting: Connecting…
     listeners: "{count, plural, one {# listening} other {# listening}}"
     live_banner: This discussion is live right now.
+    waiting_for_speakers: Waiting for someone to speak…
+    speaker_muted: "{name} (muted)"
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.

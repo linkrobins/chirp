@@ -3,11 +3,32 @@ import m from 'mithril';
 // Statically imported ON PURPOSE: a dynamic import() becomes a separate
 // webpack chunk, and Flarum's asset publisher only copies the named
 // forum.js/admin.js bundles — the chunk 404s at runtime and the join
-// spinner hangs forever (caught in the first real-device test).
-import { Room, RoomEvent } from 'livekit-client';
+// spinner hangs forever.
+import { Room, RoomEvent, Track } from 'livekit-client';
+
+export interface Speaker {
+  key: string;
+  name: string;
+  initial: string;
+  color: string;
+  speaking: boolean;
+  muted: boolean;
+  isLocal: boolean;
+}
+
+const PALETTE = ['#1ec3d6', '#b28cf5', '#e8b339', '#34c98e', '#f06a6a', '#5a9ded', '#e87fc0'];
+
+/** Stable per-identity colour so a speaker keeps the same dot every session. */
+function colorFor(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
 
 /**
- * Connection state for the one live room the user can be in.
+ * Connection state for the one live room the user can be in, plus a live
+ * roster (who's on stage, who's talking, who's muted) so the bar can show
+ * the room rather than just report that one exists.
  */
 export default class ChirpState {
   room: any = null;
@@ -15,8 +36,9 @@ export default class ChirpState {
   connecting = false;
   canPublish = false;
   muted = false;
-  participantCount = 0;
 
+  /** Identities currently talking, from LiveKit's speaker detection. */
+  private active = new Set<string>();
   private audioEls: HTMLMediaElement[] = [];
 
   connected(): boolean {
@@ -27,7 +49,48 @@ export default class ChirpState {
     return this.connected() && this.discussionId === id;
   }
 
-  /** Join (or re-join with a mic request) the live room on a discussion. */
+  /** Is anyone talking right now? Drives the waveform's energy. */
+  get anyoneSpeaking(): boolean {
+    return this.active.size > 0;
+  }
+
+  /** Everyone who can publish audio — the stage. */
+  speakers(): Speaker[] {
+    if (!this.room) return [];
+
+    const out: Speaker[] = [];
+    const add = (p: any, isLocal: boolean) => {
+      const publishes = isLocal ? this.canPublish : !!(p.permissions?.canPublish ?? (p.audioTrackPublications?.size ?? 0) > 0);
+      if (!publishes) return;
+
+      const key = String(p.identity ?? (isLocal ? 'me' : Math.random()));
+      const name = String(p.name || p.identity || 'Speaker');
+      const micOff = isLocal ? this.muted : ![...(p.audioTrackPublications?.values?.() ?? [])].some((pub: any) => !pub.isMuted);
+
+      out.push({
+        key,
+        name,
+        initial: (name.replace(/^[ug]\d+$/i, 'S').trim()[0] || 'S').toUpperCase(),
+        color: colorFor(key),
+        speaking: this.active.has(key),
+        muted: micOff,
+        isLocal,
+      });
+    };
+
+    if (this.room.localParticipant) add(this.room.localParticipant, true);
+    for (const p of this.room.remoteParticipants?.values?.() ?? []) add(p, false);
+
+    return out;
+  }
+
+  /** Everyone else in the room — the audience (including yourself if listening). */
+  listenerCount(): number {
+    if (!this.room) return 0;
+    const total = (this.room.numParticipants ?? 0) + 1; // remotes + self
+    return Math.max(0, total - this.speakers().length);
+  }
+
   async join(discussionId: number, speak: boolean): Promise<void> {
     if (this.connecting) return;
     this.connecting = true;
@@ -47,23 +110,32 @@ export default class ChirpState {
     }
   }
 
-  /** Connect with an already-minted token (the go-live path returns one). */
   async connect(discussionId: number, endpoint: string, token: string, canPublish: boolean): Promise<void> {
     await this.leave();
 
     const room = new Room();
+    const touch = () => m.redraw();
 
     room
       .on(RoomEvent.TrackSubscribed, (track: any) => {
-        if (track.kind === 'audio') {
+        if (track.kind === Track.Kind.Audio) {
           const el = track.attach();
           el.style.display = 'none';
           document.body.appendChild(el);
           this.audioEls.push(el);
         }
+        touch();
       })
-      .on(RoomEvent.ParticipantConnected, () => this.syncCount(room))
-      .on(RoomEvent.ParticipantDisconnected, () => this.syncCount(room))
+      .on(RoomEvent.ActiveSpeakersChanged, (speakers: any[]) => {
+        this.active = new Set(speakers.map((p) => String(p.identity)));
+        touch();
+      })
+      .on(RoomEvent.ParticipantConnected, touch)
+      .on(RoomEvent.ParticipantDisconnected, touch)
+      .on(RoomEvent.TrackMuted, touch)
+      .on(RoomEvent.TrackUnmuted, touch)
+      .on(RoomEvent.TrackPublished, touch)
+      .on(RoomEvent.TrackUnpublished, touch)
       .on(RoomEvent.Disconnected, () => {
         this.cleanup();
         m.redraw();
@@ -75,7 +147,7 @@ export default class ChirpState {
     this.discussionId = discussionId;
     this.canPublish = canPublish;
     this.muted = false;
-    this.syncCount(room);
+    m.redraw();
 
     if (canPublish) {
       try {
@@ -84,6 +156,7 @@ export default class ChirpState {
         app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.forum.mic_denied'));
         this.canPublish = false;
       }
+      m.redraw();
     }
   }
 
@@ -106,18 +179,13 @@ export default class ChirpState {
     }
   }
 
-  private syncCount(room: any): void {
-    this.participantCount = (room.numParticipants ?? 0) + 1; // + self
-    m.redraw();
-  }
-
   private cleanup(): void {
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
+    this.active = new Set();
     this.room = null;
     this.discussionId = null;
     this.canPublish = false;
     this.muted = false;
-    this.participantCount = 0;
   }
 }
