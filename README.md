@@ -30,6 +30,12 @@ composer require linkrobins/flarum-chirp
 Requires Flarum `^2.0`. The extension is free and open source; it connects to
 your paid Chirp channel and does nothing without one.
 
+## Note on the build
+
+Everything is bundled into `js/dist/forum.js` (no code-splitting): Flarum
+publishes only the named entry bundles, so any additional webpack chunk 404s
+at runtime. `js/webpack.config.js` disables `splitChunks` to enforce this.
+
 ## Links
 
 - [Get a channel](https://linkrobins.com/chirp)

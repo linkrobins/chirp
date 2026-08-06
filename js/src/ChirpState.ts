@@ -1,10 +1,13 @@
 import app from 'flarum/forum/app';
 import m from 'mithril';
+// Statically imported ON PURPOSE: a dynamic import() becomes a separate
+// webpack chunk, and Flarum's asset publisher only copies the named
+// forum.js/admin.js bundles — the chunk 404s at runtime and the join
+// spinner hangs forever (caught in the first real-device test).
+import { Room, RoomEvent } from 'livekit-client';
 
 /**
- * Connection state for the one live room the user can be in. livekit-client is
- * loaded via dynamic import at join time so the ~200KB client never weighs the
- * forum bundle for people who don't join a room.
+ * Connection state for the one live room the user can be in.
  */
 export default class ChirpState {
   room: any = null;
@@ -47,8 +50,6 @@ export default class ChirpState {
   /** Connect with an already-minted token (the go-live path returns one). */
   async connect(discussionId: number, endpoint: string, token: string, canPublish: boolean): Promise<void> {
     await this.leave();
-
-    const { Room, RoomEvent } = await import('livekit-client');
 
     const room = new Room();
 
