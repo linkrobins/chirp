@@ -1,6 +1,7 @@
 import { extend } from 'flarum/common/extend';
 import app from 'flarum/forum/app';
 import Button from 'flarum/common/components/Button';
+import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
 import m from 'mithril';
 
 import ChirpState from './ChirpState';
@@ -28,7 +29,10 @@ app.initializers.add('linkrobins-chirp', () => {
   });
 
   // "Go live" in the discussion controls for people who hold chirpStart.
-  extend('flarum/forum/utils/DiscussionControls', 'moderationControls', function (this: any, items: any, discussion: any) {
+  // NB: DiscussionControls is a plain util OBJECT — extend it directly (the
+  // flarum/lock idiom); the string-path form assumes a class prototype and
+  // crashes the whole initializer ("failed to initialize" toast).
+  extend(DiscussionControls, 'moderationControls', function (this: any, items: any, discussion: any) {
     if (!discussion?.attribute?.('canChirpStart') || discussion.attribute('chirpIsLive')) return;
 
     items.add(
