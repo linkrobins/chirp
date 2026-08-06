@@ -13,6 +13,11 @@ linkrobins-chirp:
       linkrobins.com dashboard → Chirp.
     service_url_label: Service URL
     service_url_help: Only change this if support asks you to.
+    # Permission-grid labels. These MUST live under admin: — Flarum ships
+    # locale by frontend, so a *.forum.* key renders as the raw key here.
+    permissions:
+      go_live_label: Start a live audio room
+      take_mic_label: Speak in a live audio room
 
   forum:
     go_live: Go live

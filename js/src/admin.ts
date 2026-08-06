@@ -31,7 +31,7 @@ app.initializers.add('linkrobins-chirp', () => {
     .registerPermission(
       {
         icon: 'fas fa-microphone',
-        label: app.translator.trans('linkrobins-chirp.forum.go_live'),
+        label: app.translator.trans('linkrobins-chirp.admin.permissions.go_live_label'),
         permission: 'discussion.chirpStart',
       },
       'moderate'
@@ -39,7 +39,7 @@ app.initializers.add('linkrobins-chirp', () => {
     .registerPermission(
       {
         icon: 'fas fa-microphone-lines',
-        label: app.translator.trans('linkrobins-chirp.forum.take_mic'),
+        label: app.translator.trans('linkrobins-chirp.admin.permissions.take_mic_label'),
         permission: 'discussion.chirpSpeak',
       },
       'reply'
