@@ -124,7 +124,6 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           Button,
           {
             className: 'Button Button--size-sm Button--flat ChirpBar-end',
-            icon: 'fas fa-stop',
             onclick: () => {
               if (!confirm(String(t('confirm_end')))) return;
               app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {

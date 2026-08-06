@@ -68,11 +68,17 @@
 
 .ChirpWave-bar {
   width: 3px;
-  height: 4px;
+  height: 6px;
   border-radius: 2px;
-  background: fade(#1ec3d6, 55%);
-  transition: background 0.3s ease;
+  background: fade(#1ec3d6, 50%);
+  transition: background 0.3s ease, height 0.3s ease;
 }
+
+// Idle: a small static waveform silhouette (taller toward the middle) so the
+// strip still reads as "audio" when the room is quiet.
+.ChirpWave-bar:nth-child(3n) { height: 11px; }
+.ChirpWave-bar:nth-child(4n) { height: 15px; }
+.ChirpWave-bar:nth-child(5n) { height: 8px; }
 
 .ChirpBar--active .ChirpWave-bar {
   background: #34c98e;

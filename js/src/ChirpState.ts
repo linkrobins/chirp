@@ -84,10 +84,12 @@ export default class ChirpState {
     return out;
   }
 
-  /** Everyone else in the room — the audience (including yourself if listening). */
+  /** Everyone else in the room — the audience (including yourself if listening).
+   *  Counted off the roster, not room.numParticipants, whose local-participant
+   *  semantics differ between client versions (it was over-counting by one). */
   listenerCount(): number {
     if (!this.room) return 0;
-    const total = (this.room.numParticipants ?? 0) + 1; // remotes + self
+    const total = (this.room.remoteParticipants?.size ?? 0) + 1; // remotes + me
     return Math.max(0, total - this.speakers().length);
   }
 
