@@ -117,13 +117,19 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
             ])
           : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
 
-        // ── Audience: the number alone; the icon says what it counts, and the
-        //    full sentence lives in the tooltip. ─────────────────────────────
-        m(
-          Tooltip,
-          { text: t('listeners', { count: listeners }) },
-          m('span.ChirpBar-count', [m('i.icon.fas.fa-headphones', { 'aria-hidden': 'true' }), m('span', String(listeners))])
-        ),
+        // ── The count: listeners for a show; for a voice channel there IS no
+        //    listening side, so it's simply everyone in the room. ────────────
+        mode === 'persistent'
+          ? m(
+              Tooltip,
+              { text: t('in_channel', { count: state.roster().length }) },
+              m('span.ChirpBar-count', [m('i.icon.fas.fa-users', { 'aria-hidden': 'true' }), m('span', String(state.roster().length))])
+            )
+          : m(
+              Tooltip,
+              { text: t('listeners', { count: listeners }) },
+              m('span.ChirpBar-count', [m('i.icon.fas.fa-headphones', { 'aria-hidden': 'true' }), m('span', String(listeners))])
+            ),
 
         // ── Controls ────────────────────────────────────────────────────────
         m('.ChirpBar-actions', this.controls(id, joined)),
