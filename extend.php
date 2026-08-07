@@ -77,9 +77,6 @@ return [
         ->post('/chirp/recordings', 'chirp.recordings.receive', \LinkRobins\Chirp\Http\ReceiveRecordingController::class)
         ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class),
 
-    // The recording event post — the thread's permanent audio artifact.
-    (new Extend\Post())
-        ->type(\LinkRobins\Chirp\Post\RecordingPost::class),
 
     // The delivery receiver is a server-to-server webhook (HMAC-signed by
     // the service) — Flarum's CSRF layer would 400 it before our auth runs.

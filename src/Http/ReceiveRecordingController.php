@@ -8,7 +8,6 @@ use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
 use Illuminate\Support\Str;
 use Laminas\Diactoros\Response\JsonResponse;
-use LinkRobins\Chirp\Post\RecordingPost;
 use LinkRobins\Chirp\Recording;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -91,6 +90,9 @@ class ReceiveRecordingController implements RequestHandlerInterface
             return new JsonResponse(['error' => 'download failed'], 502);
         }
 
+        // No event post: the recording renders under the discussion's FIRST
+        // post (serialized via DiscussionFields), where the show actually
+        // lives — not buried at the bottom of the thread.
         $recording->forceFill([
             'status'           => 'delivered',
             'path'             => $filename,
@@ -98,8 +100,6 @@ class ReceiveRecordingController implements RequestHandlerInterface
             'duration_seconds' => (int) ($payload['duration_seconds'] ?? 0),
             'delivered_at'     => Carbon::now(),
         ])->save();
-
-        RecordingPost::reply($discussionId, $recording->user_id, $recording->id, (int) $recording->duration_seconds)->save();
 
         return new JsonResponse(['status' => 'ok']);
     }

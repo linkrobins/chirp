@@ -7,16 +7,13 @@ import m from 'mithril';
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
-import ChirpRecordingPost from './components/ChirpRecordingPost';
+import ChirpRecordingStrip from './components/ChirpRecordingStrip';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
 
 app.initializers.add('linkrobins-chirp', () => {
-  // The recording event post — renders the audio player in the thread.
-  app.postComponents.chirpRecording = ChirpRecordingPost as any;
-
   // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
   // tracked data changes, so the chip would never repaint when you join or
   // leave. Register the bits of room state the chip renders from.
@@ -57,6 +54,17 @@ app.initializers.add('linkrobins-chirp', () => {
   // it. The boot payload IS loaded, so read the serialized attribute raw.
   const forumAttrs = (app.data?.resources as any[] | undefined)?.find((r) => r?.type === 'forums')?.attributes;
   document.documentElement.classList.toggle('chirp-blend', forumAttrs?.chirpAppearance === 'forum');
+
+  // Recordings render under the FIRST post — where the show lives.
+  extend('flarum/forum/components/CommentPost', 'footerItems', function (this: any, items: any) {
+    const post = this.attrs.post;
+    if (!post || post.number() !== 1) return;
+
+    const recordings = post.discussion?.()?.attribute?.('chirpRecordings') || [];
+    if (!recordings.length) return;
+
+    items.add('chirp-recordings', m(ChirpRecordingStrip, { recordings }), 100);
+  });
 
   // The dock lives OUTSIDE the SPA root so listening survives navigation.
   const dock = document.createElement('div');
