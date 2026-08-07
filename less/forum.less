@@ -12,7 +12,8 @@
 .ChirpBadge,
 .ChirpBar,
 .ChirpChip,
-.ChirpDock {
+.ChirpDock,
+.ChirpRecordingStrip {
   --chirp-hot: #e8442e;
   --chirp-cool: #1ec3d6;
   --chirp-on-hot: #fff;
@@ -22,7 +23,8 @@ html.chirp-blend {
   .ChirpBadge,
   .ChirpBar,
   .ChirpChip,
-  .ChirpDock {
+  .ChirpDock,
+  .ChirpRecordingStrip {
     --chirp-hot: var(--primary-color);
     --chirp-cool: var(--secondary-color);
     --chirp-on-hot: var(--button-primary-color, #fff);
@@ -70,19 +72,44 @@ html.chirp-blend {
   }
 }
 
-// The recording event post: the standard event line plus an inline player.
-.ChirpRecordingPost-player {
-  margin-top: 8px;
+// ── Recording strips: under the first post — where the show lives on ───────
+.ChirpRecordingStrip {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--chirp-hot) 6%, transparent) 0%, color-mix(in srgb, var(--chirp-cool) 7%, transparent) 55%, transparent 100%),
+    var(--body-bg);
+  border: 1px solid color-mix(in srgb, var(--chirp-cool) 25%, transparent);
+}
 
-  audio {
-    display: block;
-    // NOT width: min(420px, 100%) — less.php eats CSS min()/max() as ITS
-    // OWN functions and throws "incompatible types" on mixed units, which
-    // kills the whole forum stylesheet (sitewide 500).
-    width: 420px;
-    max-width: 100%;
-    height: 36px;
+.ChirpRecordingStrip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--muted-color);
+  font-size: calc(13px * var(--lr-ui-scale, 1));
+  font-weight: 600;
+
+  .icon {
+    color: var(--chirp-hot);
   }
+}
+
+.ChirpRecordingStrip-time {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+}
+
+.ChirpRecordingStrip audio {
+  display: block;
+  // NOT width: min(420px, 100%) — less.php eats CSS min()/max() as ITS OWN
+  // functions and throws "incompatible types" on mixed units, which kills
+  // the whole forum stylesheet (sitewide 500).
+  width: 100%;
+  height: 36px;
 }
 
 .ChirpBar {

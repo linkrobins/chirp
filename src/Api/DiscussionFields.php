@@ -4,6 +4,7 @@ namespace LinkRobins\Chirp\Api;
 
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
+use LinkRobins\Chirp\Recording;
 use LinkRobins\Chirp\Room;
 
 /**
@@ -21,6 +22,9 @@ class DiscussionFields
 {
     /** @var int|false|null null = not fetched yet; false = no live room */
     private int|false|null $liveDiscussionId = null;
+
+    /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
+    private ?array $recordings = null;
 
     public function __construct(protected SettingsRepositoryInterface $settings)
     {
@@ -59,7 +63,42 @@ class DiscussionFields
                         return false;
                     }
                 }),
+            Schema\Arr::make('chirpRecordings')
+                ->get(function ($discussion) {
+                    try {
+                        return $this->recordingsFor((int) $discussion->id);
+                    } catch (\Throwable) {
+                        return [];
+                    }
+                }),
         ];
+    }
+
+    /**
+     * Delivered recordings per discussion — the front end renders them under
+     * the FIRST post ("the discussion keeps the show"). Same memo shape as
+     * liveId(): ONE indexed query per request, zero per row, so the
+     * discussion index never goes N+1. Rows are (id, duration, timestamp)
+     * only — a few thousand recordings is still a trivial read.
+     */
+    private function recordingsFor(int $discussionId): array
+    {
+        if ($this->recordings === null) {
+            $this->recordings = [];
+            $rows = Recording::query()
+                ->where('status', 'delivered')
+                ->orderBy('id')
+                ->get(['id', 'discussion_id', 'duration_seconds', 'delivered_at']);
+            foreach ($rows as $row) {
+                $this->recordings[(int) $row->discussion_id][] = [
+                    'id'         => (int) $row->id,
+                    'duration'   => (int) $row->duration_seconds,
+                    'recordedAt' => optional($row->delivered_at)->toIso8601String(),
+                ];
+            }
+        }
+
+        return $this->recordings[$discussionId] ?? [];
     }
 
     private function liveId(): int|false
