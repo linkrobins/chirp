@@ -20,6 +20,14 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
   private lastVisible: boolean | null = null;
   private watching = false;
 
+  /** When the room bar left the screen — the dock waits this shudder out so
+   *  route transitions (bar unmounts, new page's bar mounts a beat later)
+   *  don't flash it. Hide stays instant. */
+  private barGoneSince: number | null = null;
+  private wakePending = false;
+
+  private static readonly SHOW_DELAY_MS = 600;
+
   oncreate(vnode: Mithril.VnodeDOM<ChirpDockAttrs>) {
     super.oncreate(vnode);
     this.watch();
@@ -72,20 +80,41 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
     const t = (k: string, d?: any) => app.translator.trans('linkrobins-chirp.forum.' + k, d);
     const { state } = this.attrs;
 
-    if (!state.connected()) return null;
+    if (!state.connected()) {
+      this.barGoneSince = null;
+      return null;
+    }
 
     // Stand down wherever the room's own toolbar is actually VISIBLE — its
     // discussion page, or its row in the list. Presence isn't enough: Flarum
     // keeps the discussion-list pane mounted (but hidden) while you read a
     // discussion, and a hidden row would otherwise suppress the dock. Scroll
     // the row out of view and the dock takes over.
-    if (this.roomBarOnScreen()) return null;
+    if (this.roomBarOnScreen()) {
+      this.barGoneSince = null;
+      return null;
+    }
+
+    // Bar just left the screen: hold off before appearing, so a route
+    // transition's bar-unmount → bar-remount doesn't flash the dock.
+    if (this.barGoneSince === null) this.barGoneSince = Date.now();
+    if (Date.now() - this.barGoneSince < ChirpDock.SHOW_DELAY_MS) {
+      if (!this.wakePending) {
+        this.wakePending = true;
+        setTimeout(() => {
+          this.wakePending = false;
+          m.redraw();
+        }, ChirpDock.SHOW_DELAY_MS + 50);
+      }
+      return null;
+    }
 
     const speakers = state.speakers();
+    const mode = (app.store.getById('discussions', String(state.discussionId))?.attribute?.('chirpRoomMode') as string) || 'live';
 
     return m('.ChirpDock', { className: state.anyoneSpeaking ? 'is-active' : '' }, [
       m('.ChirpDock-main', [
-        m('span.ChirpBadge', t('live_badge')),
+        mode === 'persistent' ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge')) : m('span.ChirpBadge', t('live_badge')),
         m(
           '.ChirpWave',
           { 'aria-hidden': 'true' },
