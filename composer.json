@@ -53,7 +53,8 @@
     },
     "require-dev": {
         "flarum/testing": "^2.0",
-        "flarum/phpstan": "^2.0"
+        "flarum/phpstan": "^2.0",
+        "flarum/subscriptions": "^2.0@RC"
     },
     "autoload-dev": {
         "psr-4": {

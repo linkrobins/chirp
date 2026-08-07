@@ -24,6 +24,9 @@ const WAVE_BARS = 14;
  * you are. The thread below is still the chat — this stays one strip.
  */
 export default class ChirpBar extends Component<ChirpBarAttrs> {
+  /** Host moderation: the speaker identity whose action chip is open. */
+  private modTarget: string | null = null;
+
   // Phones dock the bar over the content, so the page needs bottom padding
   // while one is mounted (see forum.less). The composer plumbing is shared
   // with the recording bar — see composerTracker.ts.
@@ -58,6 +61,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     const id = Number(discussion.id());
     const joined = state.inDiscussion(id);
     const speakers = state.speakers();
+    const mode = (discussion.attribute('chirpRoomMode') as string) || 'live';
+    const isHostView = !!discussion.attribute('canChirpStart') || Number(app.session.user?.id() || 0) === Number(discussion.attribute('chirpRoomHostId') || 0);
+    const ownIdentity = 'u' + (app.session.user?.id() || 0);
     const listeners = state.listenerCount();
 
     return m(
@@ -72,7 +78,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       [
         // ── Live badge + waveform ───────────────────────────────────────────
         m('.ChirpBar-live', [
-          m('span.ChirpBadge', t('live_badge')),
+          mode === 'persistent'
+            ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge'))
+            : m('span.ChirpBadge', t('live_badge')),
           state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
           m(
             '.ChirpWave',
@@ -92,15 +100,46 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
                   m(
                     'span.ChirpSpeaker',
                     {
-                      className: [s.speaking ? 'is-speaking' : '', s.muted ? 'is-muted' : ''].join(' ').trim(),
+                      className: [s.speaking ? 'is-speaking' : '', s.muted ? 'is-muted' : '', isHostView && s.key !== ownIdentity && /^u\d+$/.test(s.key) ? 'is-moderatable' : ''].join(' ').trim(),
                       style: { background: s.color },
+                      onclick: isHostView && s.key !== ownIdentity && /^u\d+$/.test(s.key)
+                        ? (e: Event) => { e.stopPropagation(); this.modTarget = this.modTarget === s.key ? null : s.key; }
+                        : undefined,
                     },
                     s.initial
                   )
                 )
               )
             )
-          : m('span.ChirpBar-waiting', t('waiting_for_speakers')),
+          : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
+
+        // ── Host moderation chip for the selected speaker ──────────────────
+        this.modTarget && speakers.some((sp) => sp.key === this.modTarget)
+          ? m('span.ChirpHand.ChirpModChip', [
+              m('span.ChirpHand-name', speakers.find((sp) => sp.key === this.modTarget)?.name || ''),
+              m(Button, {
+                className: 'Button Button--size-sm',
+                icon: 'fas fa-microphone-slash',
+                title: String(t('unstage')),
+                onclick: () => {
+                  const target = this.modTarget!;
+                  this.modTarget = null;
+                  state.moderate(id, target, 'unstage');
+                },
+              }),
+              m(Button, {
+                className: 'Button Button--size-sm ChirpHand-no',
+                icon: 'fas fa-user-slash',
+                title: String(t('kick')),
+                onclick: () => {
+                  if (!confirm(String(t('confirm_kick')))) return;
+                  const target = this.modTarget!;
+                  this.modTarget = null;
+                  state.moderate(id, target, 'kick');
+                },
+              }),
+            ])
+          : null,
 
         // ── Audience: the number alone; the icon says what it counts, and the
         //    full sentence lives in the tooltip. ─────────────────────────────
@@ -232,7 +271,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
             className: 'Button Button--size-sm ChirpBar-btn ChirpBar-end',
             icon: 'fas fa-circle-stop',
             onclick: () => {
-              if (!confirm(String(t('confirm_end')))) return;
+              if (!confirm(String(t(mode === 'persistent' ? 'confirm_close_channel' : 'confirm_end')))) return;
               app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {
                 state.leave();
                 discussion.pushAttributes({ chirpIsLive: false });

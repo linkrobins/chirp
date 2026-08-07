@@ -8,12 +8,23 @@ import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
 import ChirpRecordingBar from './components/ChirpRecordingBar';
+import ChirpRoomStartedNotification from './components/ChirpRoomStartedNotification';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
 
 app.initializers.add('linkrobins-chirp', () => {
+  // Followers hear about rooms opening.
+  app.notificationComponents.chirpRoomStarted = ChirpRoomStartedNotification as any;
+  extend('flarum/forum/components/NotificationGrid', 'notificationTypes', function (this: any, items: any) {
+    items.add('chirpRoomStarted', {
+      name: 'chirpRoomStarted',
+      icon: 'fas fa-microphone',
+      label: app.translator.trans('linkrobins-chirp.forum.settings.notify_room_started_label'),
+    });
+  });
+
   // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
   // tracked data changes, so the chip would never repaint when you join or
   // leave. Register the bits of room state the chip renders from.
@@ -94,43 +105,45 @@ app.initializers.add('linkrobins-chirp', () => {
     // for anything but 422/401/403/404/413/429, so our own copy has to do it).
     const liveElsewhere = Number(app.forum.attribute('chirpLiveDiscussionId') || 0);
 
+    const start = (mode: 'live' | 'persistent') => {
+      if (liveElsewhere && liveElsewhere !== Number(discussion.id())) {
+        app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.forum.channel_busy_elsewhere'));
+        return;
+      }
+
+      app
+        .request<any>({
+          method: 'POST',
+          url: `${app.forum.attribute('apiUrl')}/chirp/rooms`,
+          body: { discussionId: Number(discussion.id()), mode },
+          // Own the error surface: map our typed 409s to real sentences.
+          errorHandler: (error: any) => {
+            const code = error?.response?.errors?.[0]?.code;
+            const key = code === 'chirp_channel_busy' ? 'channel_busy_elsewhere' : code === 'chirp_not_configured' ? 'not_configured' : null;
+            if (!key) throw error; // anything unexpected keeps core's handling
+            app.alerts.show({ type: 'error' }, app.translator.trans(`linkrobins-chirp.forum.${key}`));
+          },
+        })
+        .then(async (res) => {
+          if (!res) return;
+          state.describe(String(discussion.title()), app.route.discussion(discussion));
+          discussion.pushAttributes({ chirpIsLive: true, chirpRoomMode: mode });
+          app.forum.pushAttributes({ chirpLiveDiscussionId: Number(discussion.id()) });
+          await state.connect(Number(discussion.id()), res.endpoint, res.token, true);
+          m.redraw();
+        });
+    };
+
     items.add(
       'chirp-go-live',
-      m(
-        Button,
-        {
-          icon: 'fas fa-microphone',
-          onclick: () => {
-            if (liveElsewhere && liveElsewhere !== Number(discussion.id())) {
-              app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.forum.channel_busy_elsewhere'));
-              return;
-            }
+      m(Button, { icon: 'fas fa-microphone', onclick: () => start('live') }, app.translator.trans('linkrobins-chirp.forum.go_live'))
+    );
 
-            app
-              .request<any>({
-                method: 'POST',
-                url: `${app.forum.attribute('apiUrl')}/chirp/rooms`,
-                body: { discussionId: Number(discussion.id()) },
-                // Own the error surface: map our typed 409s to real sentences.
-                errorHandler: (error: any) => {
-                  const code = error?.response?.errors?.[0]?.code;
-                  const key = code === 'chirp_channel_busy' ? 'channel_busy_elsewhere' : code === 'chirp_not_configured' ? 'not_configured' : null;
-                  if (!key) throw error; // anything unexpected keeps core's handling
-                  app.alerts.show({ type: 'error' }, app.translator.trans(`linkrobins-chirp.forum.${key}`));
-                },
-              })
-              .then(async (res) => {
-                if (!res) return;
-                state.describe(String(discussion.title()), app.route.discussion(discussion));
-                discussion.pushAttributes({ chirpIsLive: true });
-                app.forum.pushAttributes({ chirpLiveDiscussionId: Number(discussion.id()) });
-                await state.connect(Number(discussion.id()), res.endpoint, res.token, true);
-                m.redraw();
-              });
-          },
-        },
-        app.translator.trans('linkrobins-chirp.forum.go_live')
-      )
+    // The Discord-shaped sibling: a channel that stays open until the host
+    // closes it — a place, not a show. Never recorded.
+    items.add(
+      'chirp-open-voice',
+      m(Button, { icon: 'fas fa-headphones', onclick: () => start('persistent') }, app.translator.trans('linkrobins-chirp.forum.open_voice'))
     );
   });
 });

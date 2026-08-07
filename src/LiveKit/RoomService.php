@@ -48,6 +48,23 @@ class RoomService
         $this->call('DeleteRoom', $room, ['room' => $room]);
     }
 
+    /** Stage moderation: revoke the publish grant — the server unpublishes
+     *  their tracks and the client can't re-take the mic. */
+    public function revokePublish(string $room, string $identity): void
+    {
+        $this->call('UpdateParticipant', $room, [
+            'room'       => $room,
+            'identity'   => $identity,
+            'permission' => ['can_subscribe' => true, 'can_publish' => false, 'can_publish_data' => true],
+        ]);
+    }
+
+    /** Stage moderation: remove a participant from the room entirely. */
+    public function removeParticipant(string $room, string $identity): void
+    {
+        $this->call('RemoveParticipant', $room, ['room' => $room, 'identity' => $identity]);
+    }
+
     /**
      * Is this room actually live on the server? true/false, or null when the
      * API can't answer (caller decides the failure posture).

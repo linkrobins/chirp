@@ -79,6 +79,18 @@ class DiscussionFields
                     }
                 }),
 
+            Schema\Str::make('chirpRoomMode')
+                ->nullable()
+                ->get(function ($discussion) {
+                    try {
+                        $room = $this->liveRoom();
+
+                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (string) $room->mode : null;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }),
+
             Schema\Integer::make('chirpRoomHostId')
                 ->nullable()
                 ->get(function ($discussion) {
