@@ -153,7 +153,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               state.join(id, false);
             },
           },
-          t('join_listen')
+          t(mode === 'persistent' ? 'join_channel' : 'join_listen')
         )
       );
     } else {
