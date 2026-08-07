@@ -20,12 +20,16 @@ app.initializers.add('linkrobins-chirp', () => {
     }
   });
 
-  // The live bar in the discussion hero.
-  extend('flarum/forum/components/DiscussionHero', 'items', function (this: any, items: any) {
-    const discussion = this.attrs.discussion;
-    if (discussion?.attribute?.('chirpIsLive')) {
-      items.add('chirp-bar', m(ChirpBar, { discussion, state }), 5);
-    }
+  // The live bar sits ABOVE THE POST STREAM, not in the hero: the hero renders
+  // its items (tags, title, badges) in one <ul>, so a bar added there lines up
+  // beside the tag chips and looks wedged in. Here it gets its own full-width
+  // row directly over the conversation it belongs to.
+  extend('flarum/forum/components/DiscussionPage', 'view', function (this: any, vnode: any) {
+    const discussion = this.discussion;
+    if (!discussion?.attribute?.('chirpIsLive')) return;
+    if (!vnode || !Array.isArray(vnode.children)) return;
+
+    vnode.children.unshift(m(ChirpBar, { discussion, state }));
   });
 
   // "Go live" in the discussion controls for people who hold chirpStart.
