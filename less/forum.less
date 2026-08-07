@@ -429,7 +429,9 @@
     right: auto;
     bottom: auto;
     z-index: auto;
-    margin: 0 6px 14px 6px;
+    // 15px matches the row's own edge inset (its avatar/stats sit there), so
+    // the toolbar lines up with the row content instead of hugging the screen.
+    margin: 0 15px 16px 15px;
   }
 
   .DiscussionListItem .ChirpBar--inline .ChirpBar-actions {
