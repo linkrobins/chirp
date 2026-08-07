@@ -28,6 +28,17 @@ app.initializers.add('linkrobins-chirp', () => {
       help: app.translator.trans('linkrobins-chirp.admin.key_help'),
       type: 'text',
     })
+    .registerSetting({
+      setting: 'linkrobins-chirp.appearance',
+      label: app.translator.trans('linkrobins-chirp.admin.appearance_label'),
+      help: app.translator.trans('linkrobins-chirp.admin.appearance_help'),
+      type: 'select',
+      options: {
+        brand: app.translator.trans('linkrobins-chirp.admin.appearance_brand'),
+        forum: app.translator.trans('linkrobins-chirp.admin.appearance_forum'),
+      },
+      default: 'brand',
+    })
     .registerPermission(
       {
         icon: 'fas fa-microphone',

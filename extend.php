@@ -42,7 +42,11 @@ return [
     (new Extend\Settings())
         ->default('linkrobins-chirp.service-url', 'https://linkrobins.com')
         ->default('linkrobins-chirp.connected', '0')
-        ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1'),
+        // Accent colors: 'brand' (Chirp's palette) or 'forum' (adopt the
+        // forum's Appearance colors). Cosmetic + public, safe to serialize.
+        ->default('linkrobins-chirp.appearance', 'brand')
+        ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
+        ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 
     // Exchange the pasted channel key for connection config on save.
     (new Extend\Event())

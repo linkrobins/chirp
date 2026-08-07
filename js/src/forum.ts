@@ -45,6 +45,11 @@ app.initializers.add('linkrobins-chirp', () => {
     vnode.children.push(m(ChirpBar, { discussion, state, inline: true }));
   });
 
+  // Accent mode rides on <html> so it reaches the dock too (which mounts
+  // outside the SPA root). 'forum' adopts the forum's Appearance colors via
+  // the html.chirp-blend overrides in forum.less; default is Chirp brand.
+  document.documentElement.classList.toggle('chirp-blend', app.forum.attribute<string>('chirpAppearance') === 'forum');
+
   // The dock lives OUTSIDE the SPA root so listening survives navigation.
   const dock = document.createElement('div');
   dock.id = 'chirp-dock';
