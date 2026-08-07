@@ -59,15 +59,19 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     const { discussion, state } = this.attrs;
     const id = Number(discussion.id());
     const joined = state.inDiscussion(id);
-    const speakers = state.speakers();
-    const featured = state.featuredSpeaker();
+    // ONE connection, MANY possible bars: with a live show and voice channels
+    // coexisting, this bar may render while you're connected to a DIFFERENT
+    // room. Connection-derived visuals (roster, waveform energy, REC, counts)
+    // belong to the room you're in — never leak them onto another room's bar.
+    const speakers = joined ? state.speakers() : [];
+    const featured = joined ? state.featuredSpeaker() : null;
     const mode = (discussion.attribute('chirpRoomMode') as string) || 'live';
-    const listeners = state.listenerCount();
+    const listeners = joined ? state.listenerCount() : 0;
 
     return m(
       '.ChirpBar',
       {
-        className: [state.anyoneSpeaking ? 'ChirpBar--active' : '', this.attrs.inline ? 'ChirpBar--inline' : ''].join(' ').trim(),
+        className: [joined && state.anyoneSpeaking ? 'ChirpBar--active' : '', this.attrs.inline ? 'ChirpBar--inline' : ''].join(' ').trim(),
         // Lets the floating dock know this room already has controls on screen.
         'data-chirp-room': String(id),
         // In a list row, the controls must not trigger the row's navigation.
@@ -79,7 +83,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           mode === 'persistent'
             ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge'))
             : m('span.ChirpBadge', t('live_badge')),
-          state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
+          joined && state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
           m(
             '.ChirpWave',
             { 'aria-hidden': 'true' },
@@ -129,8 +133,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         mode === 'persistent'
           ? m(
               Tooltip,
-              { text: t('in_channel', { count: state.roster().length }) },
-              m('span.ChirpBar-count', [m('i.icon.fas.fa-users', { 'aria-hidden': 'true' }), m('span', String(state.roster().length))])
+              { text: t('in_channel', { count: joined ? state.roster().length : 0 }) },
+              m('span.ChirpBar-count', [m('i.icon.fas.fa-users', { 'aria-hidden': 'true' }), m('span', String(joined ? state.roster().length : 0))])
             )
           : m(
               Tooltip,
