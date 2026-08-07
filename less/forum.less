@@ -201,6 +201,15 @@
 // Phones: row one is the room at a glance, row two is a full-width control
 // strip. (Right-aligning the wrapped buttons left a dead gap on the left.)
 @media (max-width: 767px) {
+  // Flarum sets overflow-x: hidden on <html> for phones, which makes the root
+  // a scroll container and silently disables position: sticky for everything
+  // inside it. `clip` gives the identical overflow protection WITHOUT becoming
+  // a scroll container, so the bar can actually stick. Browsers without clip
+  // support just keep Flarum's behaviour (bar scrolls away) — no breakage.
+  html {
+    overflow-x: clip;
+  }
+
   .ChirpBar {
     gap: 10px 12px;
     padding: 12px 14px;
