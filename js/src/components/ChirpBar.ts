@@ -46,28 +46,43 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
   /**
    * On phones the bar is docked to the bottom — exactly where Flarum's
-   * composer lives. Publish the composer's height as --chirp-composer-h so
-   * the bar rides above it instead of being covered, and step aside entirely
-   * once the composer takes over most of the screen (writing a reply).
-   * A ResizeObserver keeps this true through the open/minimise animations,
-   * which finish long after the redraw that triggered them.
+   * composer lives. Publish how much of the bottom edge the composer covers
+   * as --chirp-composer-h so the bar rides above it instead of being
+   * covered, and step aside once the composer takes over most of the screen.
+   *
+   * NB: measure `.Composer` (the actual overlay, added when a composer
+   * opens), not `.App-composer` — that wrapper is a zero-height placeholder
+   * parked at the end of the document.
    */
   private trackComposer(): void {
-    const composer = document.querySelector('.App-composer, #composer') as HTMLElement | null;
-    if (!composer) return;
+    const composer = document.querySelector('.Composer') as HTMLElement | null;
+    const root = document.documentElement;
+
+    if (!composer) {
+      root.style.setProperty('--chirp-composer-h', '0px');
+      root.classList.remove('chirp-composer-full');
+      this.composerWatch?.disconnect();
+      this.composerWatch = undefined;
+      return;
+    }
 
     const measure = () => {
+      const rect = composer.getBoundingClientRect();
       const style = getComputedStyle(composer);
-      const height = style.display === 'none' || style.visibility === 'hidden' ? 0 : Math.round(composer.getBoundingClientRect().height);
+      const hidden = style.display === 'none' || style.visibility === 'hidden' || rect.height === 0;
+      // Only what actually covers the bottom edge pushes the bar up.
+      const anchoredToBottom = !hidden && rect.bottom >= window.innerHeight - 2;
+      const covered = anchoredToBottom ? Math.max(0, Math.round(window.innerHeight - rect.top)) : 0;
 
-      const root = document.documentElement;
-      root.style.setProperty('--chirp-composer-h', `${height}px`);
-      root.classList.toggle('chirp-composer-full', height > window.innerHeight * 0.4);
+      root.style.setProperty('--chirp-composer-h', `${covered}px`);
+      root.classList.toggle('chirp-composer-full', covered > window.innerHeight * 0.4);
     };
 
     measure();
 
     if (!this.composerWatch && 'ResizeObserver' in window) {
+      // Keeps up with the open/minimise animations, which finish long after
+      // the redraw that triggered them.
       this.composerWatch = new ResizeObserver(measure);
       this.composerWatch.observe(composer);
     }
