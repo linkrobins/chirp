@@ -24,11 +24,18 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
   // Phones dock the bar over the content, so the page needs bottom padding
   // while one is mounted (see forum.less).
   private composerWatch?: ResizeObserver;
+  private domWatch?: MutationObserver;
 
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.oncreate(vnode);
     document.documentElement.classList.add('chirp-live');
     this.trackComposer();
+
+    // The composer element is created lazily and its open/minimise state
+    // doesn't always re-render THIS component, so watch the DOM for it
+    // rather than relying on redraws alone.
+    this.domWatch = new MutationObserver(() => this.trackComposer());
+    this.domWatch.observe(document.body, { childList: true, subtree: true });
   }
 
   onupdate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
@@ -42,6 +49,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     document.documentElement.style.removeProperty('--chirp-composer-h');
     this.composerWatch?.disconnect();
     this.composerWatch = undefined;
+    this.domWatch?.disconnect();
+    this.domWatch = undefined;
   }
 
   /**
