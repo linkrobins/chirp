@@ -74,10 +74,7 @@ linkrobins-chirp:
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
-    open_voice: Start voice
     join_channel: Join
-    close_channel: End
-    confirm_close_channel: Remove this voice channel? Everyone gets disconnected and the discussion goes back to normal.
     voice_badge: VOICE
     voice_empty: Nobody here yet — hop in.
     unstage: Remove from stage

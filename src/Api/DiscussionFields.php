@@ -127,18 +127,6 @@ class DiscussionFields
                     }
                 }),
 
-            // Designating a discussion as a standing voice channel is admin
-            // infrastructure, deliberately NOT riding chirpStart.
-            Schema\Boolean::make('chirpCanDesignate')
-                ->get(function ($discussion, $context) {
-                    try {
-                        return $this->settings->get('linkrobins-chirp.connected') === '1'
-                            && $context->getActor()->isAdmin();
-                    } catch (\Throwable) {
-                        return false;
-                    }
-                }),
-
             Schema\Boolean::make('chirpCanDeleteRecordings')
                 ->get(function ($discussion, $context) {
                     try {
