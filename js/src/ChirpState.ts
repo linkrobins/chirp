@@ -33,6 +33,9 @@ function colorFor(key: string): string {
 export default class ChirpState {
   room: any = null;
   discussionId: number | null = null;
+  /** Title + path of the room you're in, so the dock can label and link it. */
+  roomTitle = '';
+  roomPath = '';
   connecting = false;
   canPublish = false;
   muted = false;
@@ -91,6 +94,12 @@ export default class ChirpState {
     if (!this.room) return 0;
     const total = (this.room.remoteParticipants?.size ?? 0) + 1; // remotes + me
     return Math.max(0, total - this.speakers().length);
+  }
+
+  /** Remember where the current room lives (called by whoever initiates a join). */
+  describe(title: string, path: string): void {
+    this.roomTitle = title;
+    this.roomPath = path;
   }
 
   async join(discussionId: number, speak: boolean): Promise<void> {
@@ -187,6 +196,8 @@ export default class ChirpState {
     this.active = new Set();
     this.room = null;
     this.discussionId = null;
+    this.roomTitle = '';
+    this.roomPath = '';
     this.canPublish = false;
     this.muted = false;
   }

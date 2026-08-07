@@ -6,19 +6,27 @@ import m from 'mithril';
 
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
+import ChirpChip from './components/ChirpChip';
+import ChirpDock from './components/ChirpDock';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
 
 app.initializers.add('linkrobins-chirp', () => {
-  // LIVE badge on the discussion list.
+  // The list marker doubles as the join control (see ChirpChip).
   extend('flarum/forum/components/DiscussionListItem', 'infoItems', function (this: any, items: any) {
     const discussion = this.attrs.discussion;
     if (discussion?.attribute?.('chirpIsLive')) {
-      items.add('chirp-live', m('span.ChirpBadge', app.translator.trans('linkrobins-chirp.forum.live_badge')), 100);
+      items.add('chirp-live', m(ChirpChip, { discussion, state }), 100);
     }
   });
+
+  // The dock lives OUTSIDE the SPA root so listening survives navigation.
+  const dock = document.createElement('div');
+  dock.id = 'chirp-dock';
+  document.body.appendChild(dock);
+  m.mount(dock, { view: () => m(ChirpDock, { state }) });
 
   // The live bar sits ABOVE THE POST STREAM, not in the hero: the hero renders
   // its items (tags, title, badges) in one <ul>, so a bar added there lines up
@@ -71,6 +79,7 @@ app.initializers.add('linkrobins-chirp', () => {
               })
               .then(async (res) => {
                 if (!res) return;
+                state.describe(String(discussion.title()), app.route.discussion(discussion));
                 discussion.pushAttributes({ chirpIsLive: true });
                 app.forum.pushAttributes({ chirpLiveDiscussionId: Number(discussion.id()) });
                 await state.connect(Number(discussion.id()), res.endpoint, res.token, true);

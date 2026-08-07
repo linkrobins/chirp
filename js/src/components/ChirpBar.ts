@@ -163,7 +163,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
             className: 'Button Button--size-sm ChirpBar-btn',
             icon: 'fas fa-headphones',
             loading: state.connecting,
-            onclick: () => state.join(id, false),
+            onclick: () => {
+              state.describe(String(discussion.title()), app.route.discussion(discussion));
+              state.join(id, false);
+            },
           },
           t('join_listen')
         )
@@ -189,7 +192,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               className: 'Button Button--size-sm ChirpBar-btn',
               icon: 'fas fa-microphone',
               loading: state.connecting,
-              onclick: () => state.join(id, true),
+              onclick: () => {
+                state.describe(String(discussion.title()), app.route.discussion(discussion));
+                state.join(id, true);
+              },
             },
             t('take_mic')
           )

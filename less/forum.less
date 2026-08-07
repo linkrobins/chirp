@@ -262,3 +262,144 @@
   }
   .ChirpBar--active .ChirpWave-bar { height: 12px; }
 }
+
+// ── The list chip: the LIVE marker doubles as the join control ──────────────
+.ChirpChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: #e8442e;
+  color: #fff;
+  font-size: calc(10px * var(--lr-ui-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.6;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.2s ease, transform 0.1s ease;
+
+  &:hover,
+  &:focus {
+    background: darken(#e8442e, 8%);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &.is-listening {
+    background: #34c98e;
+  }
+
+  &.is-busy {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+.ChirpChip-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5px;
+  height: 10px;
+
+  span {
+    width: 2px;
+    height: 3px;
+    border-radius: 1px;
+    background: fade(#fff, 85%);
+    animation: chirp-chip-wave 0.9s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes chirp-chip-wave {
+  from { height: 3px; }
+  to { height: 9px; }
+}
+
+.ChirpChip-icon {
+  font-size: calc(9px * var(--lr-ui-scale, 1));
+  opacity: 0.9;
+}
+
+// ── The dock: keeps you listening as you browse ────────────────────────────
+.ChirpDock {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--body-color);
+  background:
+    linear-gradient(120deg, fade(#e8442e, 7%) 0%, fade(#1ec3d6, 8%) 55%, transparent 100%),
+    var(--body-bg);
+  border: 1px solid fade(#1ec3d6, 28%);
+  box-shadow: 0 10px 30px fade(#000, 20%);
+  animation: chirp-dock-in 0.22s ease;
+
+  &.is-active {
+    border-color: fade(#34c98e, 55%);
+  }
+
+  &.is-active .ChirpWave-bar {
+    background: #34c98e;
+    animation: chirp-wave 0.85s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes chirp-dock-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ChirpDock-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ChirpDock-title {
+  font-weight: 600;
+  font-size: calc(13px * var(--lr-ui-scale, 1));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ChirpDock-count {
+  color: var(--muted-color);
+  font-weight: 700;
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+}
+
+.ChirpDock-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .ChirpDock {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + var(--chirp-composer-h, 0px));
+    max-width: none;
+    padding: 10px 12px;
+  }
+
+  html.chirp-composer-full .ChirpDock {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
