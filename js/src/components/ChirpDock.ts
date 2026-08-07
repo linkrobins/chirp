@@ -58,7 +58,13 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
     return Array.from(document.querySelectorAll(`.ChirpBar[data-chirp-room="${state.discussionId}"]`)).some((el) => {
       const node = el as HTMLElement;
       const r = node.getBoundingClientRect();
-      return node.offsetParent !== null && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+      // ⚠️ NOT offsetParent — it is null for position:fixed elements, which
+      // is exactly what the bar IS on phones, so the dock believed the bar
+      // was never on screen and overlapped it. Computed style + a real rect
+      // covers fixed bars and still excludes Flarum's hidden list pane
+      // (display:none collapses the rect to zero).
+      const style = getComputedStyle(node);
+      return style.display !== 'none' && style.visibility !== 'hidden' && r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
     });
   }
 
