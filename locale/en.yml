@@ -62,6 +62,19 @@ linkrobins-chirp:
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
+    open_voice: Open voice channel
+    close_channel: Close channel
+    confirm_close_channel: Close the voice channel? Everyone gets disconnected and the room stops occupying your channel.
+    voice_badge: VOICE
+    voice_empty: Nobody here yet — hop in.
+    unstage: Remove from stage
+    kick: Remove from room
+    confirm_kick: Remove this person from the room entirely? They can rejoin as a listener.
+    settings:
+      notify_room_started_label: Someone goes live in a discussion I follow
+    notifications:
+      went_live_text: "{user} went live"
+      voice_opened_text: "{user} opened a voice channel"
     raise_hand: Raise hand
     hand_pending: Hand raised…
     hand_declined: Not this time

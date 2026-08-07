@@ -163,6 +163,16 @@ export default class ChirpState {
       // Driven by the recorder bot joining/leaving (its `recorder` grant
       // flips the room's ActiveRecording flag server-side) — the REC badge
       // is live truth, not a local guess.
+      // Server-side stage moderation (host revoked our publish grant):
+      // livekit unpublishes the mic; reflect it in the UI immediately.
+      .on(RoomEvent.ParticipantPermissionsChanged, (_prev: any, participant: any) => {
+        if (participant === this.room?.localParticipant && participant.permissions?.canPublish === false && this.canPublish) {
+          this.canPublish = false;
+          this.muted = false;
+          if (this.handStatus === 'approved') this.handStatus = 'declined';
+        }
+        touch();
+      })
       .on(RoomEvent.RecordingStatusChanged, (rec: boolean) => {
         this.recording = rec;
         touch();
@@ -310,6 +320,16 @@ export default class ChirpState {
     this.speakPolicy = policy;
     app.store.getById('discussions', String(discussionId))?.pushAttributes({ chirpSpeakPolicy: policy });
     this.send({ t: 'policy', v: policy });
+    m.redraw();
+  }
+
+  /** Host moderation: 'unstage' revokes their mic, 'kick' removes them. */
+  async moderate(discussionId: number, identity: string, action: 'unstage' | 'kick'): Promise<void> {
+    await app.request({
+      method: 'POST',
+      url: `${this.api()}/chirp/rooms/${discussionId}/stage`,
+      body: { identity, action },
+    });
     m.redraw();
   }
 

@@ -627,3 +627,27 @@ html.chirp-blend {
 .ChirpRecordingBar-delete .Button:focus .icon {
   color: var(--chirp-hot);
 }
+
+// VOICE: the persistent-channel twin of the LIVE badge — cool accent, no
+// pulse (a place, not an event).
+.ChirpBadge--voice {
+  background: var(--chirp-cool);
+
+  &::before {
+    animation: none;
+  }
+}
+
+// Host stage moderation: moderatable avatars advertise it; the action chip
+// reuses the raised-hand chip shell.
+.ChirpSpeaker.is-moderatable {
+  cursor: pointer;
+}
+
+.ChirpModChip .Button .icon {
+  color: var(--muted-color);
+}
+
+.ChirpModChip .ChirpHand-no .icon {
+  color: var(--chirp-hot);
+}

@@ -83,10 +83,16 @@ return [
         // raised/resolved server-side (the token endpoint enforces), with
         // data-channel pings making the UI instant.
         ->post('/chirp/rooms/{id:\d+}/policy', 'chirp.rooms.policy', \LinkRobins\Chirp\Http\SetPolicyController::class)
+        ->post('/chirp/rooms/{id:\d+}/stage', 'chirp.rooms.stage', \LinkRobins\Chirp\Http\ModerateStageController::class)
         ->post('/chirp/rooms/{id:\d+}/hand', 'chirp.rooms.hand', \LinkRobins\Chirp\Http\RaiseHandController::class)
         ->post('/chirp/rooms/{id:\d+}/hand/{userId:\d+}', 'chirp.rooms.hand-resolve', \LinkRobins\Chirp\Http\ResolveHandController::class)
         ->get('/chirp/rooms/{id:\d+}/hands', 'chirp.rooms.hands', \LinkRobins\Chirp\Http\ListHandsController::class),
 
+
+    // Followers hear about rooms opening (alert by default; users can add
+    // email in their own preferences).
+    (new Extend\Notification())
+        ->type(\LinkRobins\Chirp\Notification\RoomStartedBlueprint::class, ['alert']),
 
     // The delivery receiver is a server-to-server webhook (HMAC-signed by
     // the service) — Flarum's CSRF layer would 400 it before our auth runs.
