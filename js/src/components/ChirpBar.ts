@@ -158,6 +158,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
   private controls(id: number, joined: boolean): Mithril.Children[] {
     const t = (k: string, data?: any) => app.translator.trans('linkrobins-chirp.forum.' + k, data);
     const { discussion, state } = this.attrs;
+    const mode = (discussion.attribute('chirpRoomMode') as string) || 'live';
     const actions: Mithril.Children[] = [];
 
     if (!joined) {
