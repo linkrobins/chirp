@@ -375,6 +375,19 @@ export default class ChirpState {
     }
 
     switch (msg.t) {
+      // Live thread while the room is on: someone in the room posted to the
+      // room's discussion — if we're looking at it, pull the new post(s) in.
+      // This rides the room's own data channel, so it needs NO realtime
+      // extension; with one installed the double update is harmless (the
+      // stream refresh is idempotent).
+      case 'post': {
+        const current: any = (app as any).current;
+        const disc = current?.get?.('discussion');
+        if (disc && Number(disc.id()) === this.discussionId) {
+          current.get('stream')?.update?.()?.then?.(() => m.redraw());
+        }
+        break;
+      }
       case 'hand':
         if (!this.hands.some((h) => h.userId === Number(msg.user))) {
           this.hands.push({ userId: Number(msg.user), name: String(msg.name || '?') });
@@ -403,6 +416,12 @@ export default class ChirpState {
         return;
     }
     m.redraw();
+  }
+
+  /** Called when this client created a post — tell the room so everyone at
+   *  the session sees the thread move without any realtime extension. */
+  notifyPost(discussionId: number): void {
+    if (this.inDiscussion(discussionId)) this.send({ t: 'post' });
   }
 
   async raiseHand(discussionId: number): Promise<void> {
