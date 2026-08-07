@@ -411,9 +411,16 @@
 // rows asymmetrically (15px left, 25px right, the extra reserved for the
 // controls button), so an untouched full-width child reads as lopsided.
 // Pull the right edge out by the difference for even gutters either side.
+// The row reserves the space under the toolbar itself — a margin on the
+// toolbar would collapse out of the row and leave its background flush
+// against the bar.
+.DiscussionListItem.has-chirp-room {
+  padding-bottom: 14px;
+}
+
 .DiscussionListItem .ChirpBar--inline {
   position: static;
-  margin: 0 -10px 18px 0;
+  margin: 0 -10px 0 0;
   padding: 8px 12px;
   gap: 10px;
   box-shadow: none;
@@ -431,7 +438,11 @@
     z-index: auto;
     // 15px matches the row's own edge inset (its avatar/stats sit there), so
     // the toolbar lines up with the row content instead of hugging the screen.
-    margin: 0 15px 16px 15px;
+    margin: 0 15px 0 15px;
+  }
+
+  .DiscussionListItem.has-chirp-room {
+    padding-bottom: 12px;
   }
 
   .DiscussionListItem .ChirpBar--inline .ChirpBar-actions {

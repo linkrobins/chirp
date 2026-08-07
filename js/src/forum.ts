@@ -36,6 +36,12 @@ app.initializers.add('linkrobins-chirp', () => {
     // stop short of the row's edge.
     if (!vnode || !Array.isArray(vnode.children)) return;
 
+    // Flag the row so it can reserve space beneath the toolbar (a margin on
+    // the toolbar itself collapses out of the row, leaving its background
+    // flush against the bar).
+    vnode.attrs = vnode.attrs || {};
+    vnode.attrs.className = `${vnode.attrs.className || ''} has-chirp-room`.trim();
+
     vnode.children.push(m(ChirpBar, { discussion, state, inline: true }));
   });
 
