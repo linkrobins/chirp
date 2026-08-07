@@ -48,7 +48,11 @@ app.initializers.add('linkrobins-chirp', () => {
   // Accent mode rides on <html> so it reaches the dock too (which mounts
   // outside the SPA root). 'forum' adopts the forum's Appearance colors via
   // the html.chirp-blend overrides in forum.less; default is Chirp brand.
-  document.documentElement.classList.toggle('chirp-blend', app.forum.attribute<string>('chirpAppearance') === 'forum');
+  // ⚠️ app.forum is NOT populated yet while initializers run — touching it
+  // here throws and takes the whole initializer (bar, chip, dock) down with
+  // it. The boot payload IS loaded, so read the serialized attribute raw.
+  const forumAttrs = (app.data?.resources as any[] | undefined)?.find((r) => r?.type === 'forums')?.attributes;
+  document.documentElement.classList.toggle('chirp-blend', forumAttrs?.chirpAppearance === 'forum');
 
   // The dock lives OUTSIDE the SPA root so listening survives navigation.
   const dock = document.createElement('div');
