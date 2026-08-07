@@ -2,7 +2,6 @@ import app from 'flarum/forum/app';
 import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import Tooltip from 'flarum/common/components/Tooltip';
-import icon from 'flarum/common/helpers/icon';
 import type Mithril from 'mithril';
 import m from 'mithril';
 import type ChirpState from '../ChirpState';
@@ -64,7 +63,11 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
       // ── Audience: the number alone; the icon says what it counts, and the
       //    full sentence lives in the tooltip. ─────────────────────────────
-      m(Tooltip, { text: t('listeners', { count: listeners }) }, m('span.ChirpBar-count', [icon('fas fa-headphones'), m('span', String(listeners))])),
+      m(
+        Tooltip,
+        { text: t('listeners', { count: listeners }) },
+        m('span.ChirpBar-count', [m('i.icon.fas.fa-headphones', { 'aria-hidden': 'true' }), m('span', String(listeners))])
+      ),
 
       // ── Controls ────────────────────────────────────────────────────────
       m('.ChirpBar-actions', this.controls(id, joined)),
