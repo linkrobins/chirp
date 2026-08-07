@@ -1,0 +1,46 @@
+// Voice-channel management panel (Admin → Chirp).
+
+.ChirpChannels-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  max-width: 480px;
+}
+
+.ChirpChannels-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--control-bg);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.ChirpChannels-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ChirpChannels-empty {
+  color: var(--muted-color);
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.ChirpChannels-add {
+  display: flex;
+  gap: 8px;
+  max-width: 480px;
+  margin-top: 8px;
+
+  .FormControl {
+    flex: 1;
+  }
+}

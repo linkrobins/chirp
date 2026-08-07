@@ -30,6 +30,18 @@ linkrobins-chirp:
     policy_open: Anyone can speak
     policy_hand: Raise hand to speak
     policy_op: Author only
+    channels_label: Voice channels
+    channels_help: >
+      Standing voice rooms, Discord-style: designate a discussion and its
+      voice bar stays open until you remove it here. Voice channels never
+      block Go live and are never recorded. Paste a discussion link or ID.
+    channels_none: No voice channels yet.
+    channels_placeholder: Discussion link or ID
+    channels_add: Designate
+    channels_remove: Remove
+    channels_confirm_remove: >
+      Remove this voice channel? Everyone in it gets disconnected and the
+      discussion goes back to normal.
     record_label: Record live rooms
     record_help: >
       When your channel has the recordings add-on, every room is recorded and
@@ -65,7 +77,7 @@ linkrobins-chirp:
     open_voice: Start voice
     join_channel: Join
     close_channel: End
-    confirm_close_channel: Close the voice channel? Everyone gets disconnected and the room stops occupying your channel.
+    confirm_close_channel: Remove this voice channel? Everyone gets disconnected and the discussion goes back to normal.
     voice_badge: VOICE
     voice_empty: Nobody here yet — hop in.
     unstage: Remove from stage

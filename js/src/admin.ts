@@ -1,5 +1,6 @@
 import app from 'flarum/admin/app';
 import m from 'mithril';
+import ChirpChannelsPanel from './components/ChirpChannelsPanel';
 
 // Chirp admin: one field. The owner pastes their channel key from the
 // linkrobins.com dashboard and the extension exchanges it for the channel's
@@ -57,6 +58,8 @@ app.initializers.add('linkrobins-chirp', () => {
       },
       default: 'brand',
     })
+    // Standing voice channels: designate/remove, admin-only by design.
+    .registerSetting(() => m(ChirpChannelsPanel), -10)
     .registerPermission(
       {
         icon: 'fas fa-microphone',

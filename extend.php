@@ -32,7 +32,8 @@ return [
         ->css(__DIR__ . '/less/forum.less'),
 
     (new Extend\Frontend('admin'))
-        ->js(__DIR__ . '/js/dist/admin.js'),
+        ->js(__DIR__ . '/js/dist/admin.js')
+        ->css(__DIR__ . '/less/admin.less'),
 
     new Extend\Locales(__DIR__ . '/locale'),
 
@@ -86,7 +87,8 @@ return [
         ->post('/chirp/rooms/{id:\d+}/stage', 'chirp.rooms.stage', \LinkRobins\Chirp\Http\ModerateStageController::class)
         ->post('/chirp/rooms/{id:\d+}/hand', 'chirp.rooms.hand', \LinkRobins\Chirp\Http\RaiseHandController::class)
         ->post('/chirp/rooms/{id:\d+}/hand/{userId:\d+}', 'chirp.rooms.hand-resolve', \LinkRobins\Chirp\Http\ResolveHandController::class)
-        ->get('/chirp/rooms/{id:\d+}/hands', 'chirp.rooms.hands', \LinkRobins\Chirp\Http\ListHandsController::class),
+        ->get('/chirp/rooms/{id:\d+}/hands', 'chirp.rooms.hands', \LinkRobins\Chirp\Http\ListHandsController::class)
+        ->get('/chirp/channels', 'chirp.channels.list', \LinkRobins\Chirp\Http\ListChannelsController::class),
 
 
     // Followers hear about rooms opening (alert by default; users can add

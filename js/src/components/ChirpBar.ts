@@ -244,6 +244,11 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         )
       );
 
+    }
+
+    // End: hosts/mods pull the plug on a show; a designated voice channel is
+    // admin infrastructure, so only admins see its End (removal) button.
+    if (mode === 'persistent' ? discussion.attribute('chirpCanDesignate') : discussion.attribute('canChirpStart')) {
       actions.push(
         m(
           Button,
@@ -255,7 +260,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {
                 state.leave();
                 discussion.pushAttributes({ chirpIsLive: false });
-                app.forum.pushAttributes({ chirpLiveDiscussionId: 0 });
+                if (mode === 'live') app.forum.pushAttributes({ chirpLiveDiscussionId: 0 });
                 m.redraw();
               });
             },

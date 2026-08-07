@@ -62,31 +62,38 @@ class StartRoomController implements RequestHandlerInterface
         $actor->assertCan('chirpStart', $discussion);
 
         // 'live' = the event shape (starts, ends, leaves a recording);
-        // 'persistent' = a Discord-style voice channel that stays open until
-        // the host closes it. Both occupy the channel: one container, one
-        // room at a time.
+        // 'persistent' = an ADMIN-designated voice channel — a standing
+        // Discord-style place that stays open until an admin removes the
+        // designation. Voice channels don't occupy the one-live-room slot:
+        // shows stay exclusive among themselves, places just exist.
         $mode = Arr::get($request->getParsedBody(), 'mode') === 'persistent' ? 'persistent' : 'live';
 
+        if ($mode === 'persistent') {
+            $actor->assertAdmin();
+        }
+
         $room = Room::query()->getConnection()->transaction(function () use ($discussion, $actor, $mode) {
-            $existing = Room::query()->lockForUpdate()->first();
-            if ($existing) {
-                // A PERSISTENT room legitimately outlives its LiveKit room
-                // (empty = the server reaped it; rejoining recreates it), so
-                // it occupies the channel until the host closes it — never
-                // reconciled away.
-                if ($existing->mode === 'persistent') {
-                    throw new ChannelBusyException();
+            // One bar per discussion, whatever its shape: an existing room
+            // here (live show or designated channel) blocks another.
+            if (Room::query()->lockForUpdate()->where('discussion_id', $discussion->id)->exists()) {
+                throw new ChannelBusyException();
+            }
+
+            if ($mode === 'live') {
+                $existing = Room::query()->lockForUpdate()->where('mode', 'live')->first();
+                if ($existing) {
+                    // A LIVE room that ends NATURALLY (everyone leaves, the
+                    // server's departure timeout closes it) never passes
+                    // through EndRoom, so its row lingers and would wedge
+                    // the channel with 409s forever. Ask the server whether
+                    // that room is really still live; only a confirmed-dead
+                    // room clears the row (API failure stays fail-closed =
+                    // busy).
+                    if ($this->rooms->roomExists(Room::nameFor($existing->discussion_id)) !== false) {
+                        throw new ChannelBusyException();
+                    }
+                    $existing->delete();
                 }
-                // A LIVE room that ends NATURALLY (everyone leaves, the
-                // server's departure timeout closes it) never passes through
-                // EndRoom, so its row lingers and would wedge the channel
-                // with 409s forever. Ask the server whether that room is
-                // really still live; only a confirmed-dead room clears the
-                // row (API failure stays fail-closed = busy).
-                if ($this->rooms->roomExists(Room::nameFor($existing->discussion_id)) !== false) {
-                    throw new ChannelBusyException();
-                }
-                $existing->delete();
             }
 
             return Room::create([

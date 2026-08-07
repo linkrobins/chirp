@@ -19,7 +19,10 @@ class ForumFields
             Schema\Integer::make('chirpLiveDiscussionId')
                 ->get(function () {
                     try {
-                        return (int) (Room::query()->value('discussion_id') ?? 0);
+                        // Only the SHOW counts: designated voice channels
+                        // are standing places and never make the channel
+                        // read as busy.
+                        return (int) (Room::query()->where('mode', 'live')->value('discussion_id') ?? 0);
                     } catch (\Throwable) {
                         return 0;
                     }
