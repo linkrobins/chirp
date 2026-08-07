@@ -1,5 +1,6 @@
-import { extend } from 'flarum/common/extend';
+import { extend, override } from 'flarum/common/extend';
 import app from 'flarum/forum/app';
+import Application from 'flarum/common/Application';
 import Button from 'flarum/common/components/Button';
 import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
 import m from 'mithril';
@@ -71,6 +72,25 @@ app.initializers.add('linkrobins-chirp', () => {
   dock.id = 'chirp-dock';
   document.body.appendChild(dock);
   m.mount(dock, { view: () => m(ChirpDock, { state }) });
+
+  // Live thread during a session: whenever THIS client creates a post in the
+  // room it's sitting in, ping the room over the data channel (composer path
+  // agnostic — any successful POST /api/posts counts). Receivers refresh the
+  // stream; see ChirpState.onData 'post'.
+  override(Application.prototype, 'request', function (this: any, original: any, options: any) {
+    const result = original(options);
+    try {
+      if (options?.method === 'POST' && /\/api\/posts$/.test(String(options.url || '')) && result?.then) {
+        result.then((res: any) => {
+          const did = Number(res?.data?.relationships?.discussion?.data?.id || 0);
+          if (did && res?.data?.type === 'posts') state.notifyPost(did);
+        }, () => {});
+      }
+    } catch {
+      // Never let the live-thread sugar break a request.
+    }
+    return result;
+  });
 
   // Full page loads (refresh, non-SPA links like the site chrome's) kill the
   // JS context and the room with it — rejoin where this tab left off.
