@@ -62,8 +62,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           )
         : m('span.ChirpBar-waiting', t('waiting_for_speakers')),
 
-      // ── Audience ────────────────────────────────────────────────────────
-      m('span.ChirpBar-count', [m('span.ChirpBar-dot', { 'aria-hidden': 'true' }), t('listeners', { count: listeners })]),
+      // ── Audience: the number alone; the icon says what it counts, and the
+      //    full sentence lives in the tooltip. ─────────────────────────────
+      m(Tooltip, { text: t('listeners', { count: listeners }) }, m('span.ChirpBar-count', [icon('fas fa-headphones'), m('span', String(listeners))])),
 
       // ── Controls ────────────────────────────────────────────────────────
       m('.ChirpBar-actions', this.controls(id, joined)),
