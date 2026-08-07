@@ -407,11 +407,13 @@
 // ── The toolbar inside a discussion-list row ───────────────────────────────
 // Same component as the discussion page, minus the docking behaviour: it
 // belongs to the row, so it sits in flow beneath the title/tags/meta.
-// As a block child of the row it inherits the row's padding box on both
-// sides, so its edges match the row exactly — no tuned offsets to drift.
+// A block child of the row inherits the row's padding box — but Flarum pads
+// rows asymmetrically (15px left, 25px right, the extra reserved for the
+// controls button), so an untouched full-width child reads as lopsided.
+// Pull the right edge out by the difference for even gutters either side.
 .DiscussionListItem .ChirpBar--inline {
   position: static;
-  margin: 0 0 12px;
+  margin: 0 -10px 12px 0;
   padding: 8px 12px;
   gap: 10px;
   box-shadow: none;
