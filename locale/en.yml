@@ -13,6 +13,14 @@ linkrobins-chirp:
       linkrobins.com dashboard → Chirp.
     service_url_label: Service URL
     service_url_help: Only change this if support asks you to.
+    appearance_label: Accent colors
+    appearance_help: >
+      Chirp brand keeps the live bar's own coral-and-teal accents. Match forum
+      theme adopts your forum's Appearance colors (primary and secondary
+      color) instead, so the bar blends into your site. The green "mic is
+      live" cues stay the same either way.
+    appearance_brand: Chirp brand
+    appearance_forum: Match forum theme
     # Permission-grid labels. These MUST live under admin: — Flarum ships
     # locale by frontend, so a *.forum.* key renders as the raw key here.
     permissions:

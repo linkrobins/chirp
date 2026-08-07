@@ -1,14 +1,42 @@
 // Chirp — the live-room bar. Sized with the FontSizer contract vars so
 // text-resize controls compose (no-ops when none installed).
 
+// Accent roles, overridable per forum. Brand (the default) is Chirp's own
+// palette. "Match forum theme" (html.chirp-blend, driven by the admin
+// appearance setting) adopts the forum's Appearance colors instead: the
+// hot/live accent takes primary, the frame takes secondary, and text on hot
+// surfaces takes Flarum's YIQ-computed on-primary color so a light primary
+// stays readable. The green stays fixed in both modes — it means "mic is
+// hot / you're in", a status, not a brand. fade()/darken() only work on
+// compile-time literals, so translucent accents go through color-mix().
+.ChirpBadge,
+.ChirpBar,
+.ChirpChip,
+.ChirpDock {
+  --chirp-hot: #e8442e;
+  --chirp-cool: #1ec3d6;
+  --chirp-on-hot: #fff;
+}
+
+html.chirp-blend {
+  .ChirpBadge,
+  .ChirpBar,
+  .ChirpChip,
+  .ChirpDock {
+    --chirp-hot: var(--primary-color);
+    --chirp-cool: var(--secondary-color);
+    --chirp-on-hot: var(--button-primary-color, #fff);
+  }
+}
+
 .ChirpBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 1px 7px;
   border-radius: 999px;
-  background: #e8442e;
-  color: #fff;
+  background: var(--chirp-hot);
+  color: var(--chirp-on-hot);
   font-size: calc(10px * var(--lr-ui-scale, 1));
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -20,7 +48,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--chirp-on-hot);
     animation: chirp-pulse 1.6s ease-in-out infinite;
   }
 }
@@ -40,9 +68,9 @@
   border-radius: 12px;
   color: var(--body-color);
   background:
-    linear-gradient(120deg, fade(#e8442e, 7%) 0%, fade(#1ec3d6, 8%) 55%, transparent 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--chirp-hot) 7%, transparent) 0%, color-mix(in srgb, var(--chirp-cool) 8%, transparent) 55%, transparent 100%),
     var(--body-bg);
-  border: 1px solid fade(#1ec3d6, 28%);
+  border: 1px solid color-mix(in srgb, var(--chirp-cool) 28%, transparent);
   box-shadow: 0 1px 2px fade(#000, 6%);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 
@@ -78,7 +106,7 @@
   width: 3px;
   height: 6px;
   border-radius: 2px;
-  background: fade(#1ec3d6, 50%);
+  background: color-mix(in srgb, var(--chirp-cool) 50%, transparent);
   transition: background 0.3s ease, height 0.3s ease;
 }
 
@@ -189,13 +217,13 @@
 
   &.is-muted,
   &.is-muted .Button-label {
-    color: #e8442e;
+    color: var(--chirp-hot);
   }
 }
 
 .ChirpBar-end,
 .ChirpBar-end .Button-label {
-  color: #e8442e;
+  color: var(--chirp-hot);
 }
 
 // Phones: row one is the room at a glance, row two is a full-width control
@@ -271,8 +299,8 @@
   padding: 1px 8px 1px 7px;
   border: 0;
   border-radius: 999px;
-  background: #e8442e;
-  color: #fff;
+  background: var(--chirp-hot);
+  color: var(--chirp-on-hot);
   font-size: calc(10px * var(--lr-ui-scale, 1));
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -283,7 +311,7 @@
 
   &:hover,
   &:focus {
-    background: darken(#e8442e, 8%);
+    background: color-mix(in srgb, var(--chirp-hot) 85%, #000);
   }
 
   &:active {
@@ -310,7 +338,7 @@
     width: 2px;
     height: 3px;
     border-radius: 1px;
-    background: fade(#fff, 85%);
+    background: color-mix(in srgb, var(--chirp-on-hot) 85%, transparent);
     animation: chirp-chip-wave 0.9s ease-in-out infinite alternate;
   }
 }
@@ -339,9 +367,9 @@
   border-radius: 12px;
   color: var(--body-color);
   background:
-    linear-gradient(120deg, fade(#e8442e, 7%) 0%, fade(#1ec3d6, 8%) 55%, transparent 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--chirp-hot) 7%, transparent) 0%, color-mix(in srgb, var(--chirp-cool) 8%, transparent) 55%, transparent 100%),
     var(--body-bg);
-  border: 1px solid fade(#1ec3d6, 28%);
+  border: 1px solid color-mix(in srgb, var(--chirp-cool) 28%, transparent);
   box-shadow: 0 10px 30px fade(#000, 20%);
   animation: chirp-dock-in 0.22s ease;
 
