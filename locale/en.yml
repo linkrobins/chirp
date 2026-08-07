@@ -34,9 +34,9 @@ linkrobins-chirp:
     channels_help: >
       Standing voice rooms, Discord-style: designate a discussion and its
       voice bar stays open until you remove it here. Voice channels never
-      block Go live and are never recorded. Paste a discussion link or ID.
+      block Go live and are never recorded.
     channels_none: No voice channels yet.
-    channels_placeholder: Discussion link or ID
+    channels_placeholder: Search discussions…
     channels_add: Designate
     channels_remove: Remove
     channels_confirm_remove: >

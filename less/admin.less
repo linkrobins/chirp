@@ -39,8 +39,50 @@
   gap: 8px;
   max-width: 480px;
   margin-top: 8px;
+  align-items: flex-start;
+}
 
-  .FormControl {
-    flex: 1;
+// The type-to-search picker: suggestions drop under the input.
+.ChirpChannels-pickerwrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.ChirpChannels-suggest {
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ChirpChannels-suggestItem {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover,
+  &:focus {
+    background: var(--control-bg);
   }
+}
+
+.ChirpChannels-suggestNote {
+  padding: 7px 12px;
+  color: var(--muted-color);
 }
