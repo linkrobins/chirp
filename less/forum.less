@@ -212,22 +212,26 @@
     top: auto;
     left: 8px;
     right: 8px;
-    bottom: 8px;
+    // Rides above the composer when one is docked down there
+    // (--chirp-composer-h is published by the component).
+    bottom: calc(8px + var(--chirp-composer-h, 0px));
     z-index: 20;
     margin: 0;
     gap: 10px 12px;
     padding: 12px 14px;
     box-shadow: 0 8px 24px fade(#000, 22%);
+    transition: bottom 0.2s ease, opacity 0.15s ease;
   }
 
   // Reserve room so the last post never hides under the docked bar.
   html.chirp-live .App-content {
-    padding-bottom: 116px;
+    padding-bottom: calc(116px + var(--chirp-composer-h, 0px));
   }
 
-  // The composer owns the bottom of the screen while it is open.
-  html.composer-open .ChirpBar {
-    display: none;
+  // Writing a reply takes over the screen — the room steps aside.
+  html.chirp-composer-full .ChirpBar {
+    opacity: 0;
+    pointer-events: none;
   }
 
   // The waveform already says "waiting"; the sentence just eats a row.

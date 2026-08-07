@@ -23,14 +23,54 @@ const WAVE_BARS = 14;
 export default class ChirpBar extends Component<ChirpBarAttrs> {
   // Phones dock the bar over the content, so the page needs bottom padding
   // while one is mounted (see forum.less).
+  private composerWatch?: ResizeObserver;
+
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.oncreate(vnode);
     document.documentElement.classList.add('chirp-live');
+    this.trackComposer();
+  }
+
+  onupdate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
+    super.onupdate(vnode);
+    this.trackComposer();
   }
 
   onremove(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.onremove(vnode);
-    document.documentElement.classList.remove('chirp-live');
+    document.documentElement.classList.remove('chirp-live', 'chirp-composer-full');
+    document.documentElement.style.removeProperty('--chirp-composer-h');
+    this.composerWatch?.disconnect();
+    this.composerWatch = undefined;
+  }
+
+  /**
+   * On phones the bar is docked to the bottom — exactly where Flarum's
+   * composer lives. Publish the composer's height as --chirp-composer-h so
+   * the bar rides above it instead of being covered, and step aside entirely
+   * once the composer takes over most of the screen (writing a reply).
+   * A ResizeObserver keeps this true through the open/minimise animations,
+   * which finish long after the redraw that triggered them.
+   */
+  private trackComposer(): void {
+    const composer = document.querySelector('.App-composer, #composer') as HTMLElement | null;
+    if (!composer) return;
+
+    const measure = () => {
+      const style = getComputedStyle(composer);
+      const height = style.display === 'none' || style.visibility === 'hidden' ? 0 : Math.round(composer.getBoundingClientRect().height);
+
+      const root = document.documentElement;
+      root.style.setProperty('--chirp-composer-h', `${height}px`);
+      root.classList.toggle('chirp-composer-full', height > window.innerHeight * 0.4);
+    };
+
+    measure();
+
+    if (!this.composerWatch && 'ResizeObserver' in window) {
+      this.composerWatch = new ResizeObserver(measure);
+      this.composerWatch.observe(composer);
+    }
   }
 
   view(): Mithril.Children {
