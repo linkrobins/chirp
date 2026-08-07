@@ -106,13 +106,20 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               ),
               speakers.length > 1 ? m('span.ChirpBar-morecount', `+${speakers.length - 1}`) : null,
               joined
-                ? m(Button, {
-                    className: 'Button Button--icon Button--flat ChirpBar-roster',
-                    icon: 'fas fa-ellipsis',
-                    'aria-label': t('participants'),
-                    title: String(t('participants')),
-                    onclick: (e: Event) => { e.stopPropagation(); this.openRoster(); },
-                  })
+                ? m('span.ChirpBar-rosterwrap', [
+                    m(Button, {
+                      className: 'Button Button--icon Button--flat ChirpBar-roster',
+                      icon: 'fas fa-ellipsis',
+                      'aria-label': t('participants'),
+                      title: String(t('participants')),
+                      onclick: (e: Event) => { e.stopPropagation(); this.openRoster(); },
+                    }),
+                    // Pending raised hands ping the host here — the queue
+                    // itself lives in the participants modal.
+                    mode !== 'persistent' && discussion.attribute('canChirpStart') && state.hands.length
+                      ? m('span.ChirpBar-rosterBadge', String(state.hands.length))
+                      : null,
+                  ])
                 : null,
             ])
           : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
@@ -222,23 +229,11 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       actions.push(m(Button, { className: 'Button Button--size-sm Button--flat', onclick: () => state.leave() }, t('leave')));
     }
 
-    // Hands + the policy switcher are SHOW furniture — voice channels have
-    // neither (moderation there = mute/kick via the participants modal).
+    // The policy switcher is SHOW furniture — voice channels don't have it.
+    // Pending hands live in the participants modal (the \u22EF badge points
+    // there), not in the toolbar.
     if (mode !== 'persistent' && discussion.attribute('canChirpStart')) {
       const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
-
-      // Pending hands — approve brings them straight up on stage.
-      if (policy === 'hand') {
-        state.hands.forEach((h) => {
-          actions.push(
-            m('span.ChirpHand', { key: undefined }, [
-              m('span.ChirpHand-name', '\u270B ' + h.name),
-              m(Button, { className: 'Button Button--size-sm ChirpHand-yes', icon: 'fas fa-check', title: String(t('approve')), onclick: () => state.resolveHand(id, h.userId, true) }),
-              m(Button, { className: 'Button Button--size-sm ChirpHand-no', icon: 'fas fa-xmark', title: String(t('decline')), onclick: () => state.resolveHand(id, h.userId, false) }),
-            ])
-          );
-        });
-      }
 
       // The live policy switcher — the bar-switcher model (admin sets the
       // default, the host opens up or locks down mid-show).

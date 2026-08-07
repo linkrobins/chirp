@@ -89,7 +89,39 @@ export default class ChirpParticipantsModal extends Modal<ChirpParticipantsModal
       ]);
     }
 
+    // Pending raised hands — the host's queue, approve/decline per row.
+    const hands = isHostView ? chirp.hands : [];
+
     return m('.Modal-body.ChirpRoster', [
+      hands.length ? m('h4.ChirpRoster-heading', { key: 'h-hands' }, t('hands_heading', { count: hands.length })) : null,
+      hands.length
+        ? m(
+            '.ChirpRoster-list',
+            { key: 'l-hands' },
+            hands.map((h) =>
+              m('.ChirpRoster-row', { key: 'hand-' + h.userId }, [
+                m('span.ChirpRoster-hand', '✋'),
+                m('span.ChirpRoster-name', h.name),
+                m('span.ChirpRoster-actions', [
+                  m(Button, {
+                    className: 'Button Button--icon Button--flat ChirpRoster-approve',
+                    icon: 'fas fa-check',
+                    'aria-label': t('approve'),
+                    title: String(t('approve')),
+                    onclick: () => chirp.resolveHand(id, h.userId, true),
+                  }),
+                  m(Button, {
+                    className: 'Button Button--icon Button--flat ChirpRoster-kick',
+                    icon: 'fas fa-xmark',
+                    'aria-label': t('decline'),
+                    title: String(t('decline')),
+                    onclick: () => chirp.resolveHand(id, h.userId, false),
+                  }),
+                ]),
+              ])
+            )
+          )
+        : null,
       m('h4.ChirpRoster-heading', { key: 'h-stage' }, t('on_stage', { count: speakers.length })),
       speakers.length
         ? m('.ChirpRoster-list', { key: 'l-stage' }, speakers.map(row))

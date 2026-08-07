@@ -590,27 +590,40 @@ html.chirp-blend {
 }
 
 // ── Raised hands (host view): compact chips with approve/decline ───────────
-.ChirpHand {
+// The ⋯ button's pending-hands ping; the queue itself is in the modal.
+.ChirpBar-rosterwrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.ChirpBar-rosterBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 4px 2px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--chirp-hot) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--chirp-hot) 25%, transparent);
+  justify-content: center;
+  background: var(--chirp-hot);
+  color: var(--chirp-on-hot);
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
 }
 
-.ChirpHand-name {
-  font-size: calc(12px * var(--lr-ui-scale, 1));
-  font-weight: 600;
-  white-space: nowrap;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.ChirpRoster-hand {
+  width: 30px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
-.ChirpHand-yes .icon { color: #34c98e; }
-.ChirpHand-no .icon  { color: var(--chirp-hot); }
+// Outranks .ChirpRoster-actions' muted default without !important.
+.ChirpRoster-actions .ChirpRoster-approve .icon {
+  color: #34c98e;
+}
 
 // The host's live policy switcher shares the recording picker's pill.
 .ChirpBar-policy {
