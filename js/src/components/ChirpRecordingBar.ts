@@ -1,5 +1,6 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
+import Button from 'flarum/common/components/Button';
 import m from 'mithril';
 import type Mithril from 'mithril';
 
@@ -23,7 +24,7 @@ const WAVE_BARS = 14;
  * recordings (stacked docks can't work). Hidden while a room is actually
  * live — the live bar owns the spot.
  */
-export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> {
+export default class ChirpRecordingBar extends Component<{ recordings: Rec[]; discussion: any }> {
   private selected = -1; // -1 = latest
   private tracker = new ComposerTracker('chirp-recorded');
 
@@ -44,7 +45,7 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
 
   view() {
     const t = (k: string, params?: any) => app.translator.trans('linkrobins-chirp.forum.' + k, params);
-    const recordings = this.attrs.recordings;
+    const { recordings, discussion } = this.attrs;
     const index = this.selected >= 0 && this.selected < recordings.length ? this.selected : recordings.length - 1;
     const rec = recordings[index];
     if (!rec) return null;
@@ -91,6 +92,31 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
             )
           : null,
         m('audio.ChirpRecordingBar-player', { key: 'rec-' + rec.id, controls: true, preload: 'metadata', src }),
+        // Deleting is permissioned (chirpDeleteRecording, moderators by
+        // default) and confirmed — the forum holds the ONLY copy.
+        discussion?.attribute?.('chirpCanDeleteRecordings')
+          ? m(
+              'span.ChirpRecordingBar-delete',
+              { key: 'del' },
+              m(Button, {
+                className: 'Button Button--size-sm Button--flat',
+                icon: 'fas fa-trash-can',
+                title: String(t('delete_recording')),
+                'aria-label': String(t('delete_recording')),
+                onclick: () => {
+                  if (!confirm(String(t('confirm_delete_recording')))) return;
+                  app
+                    .request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}` })
+                    .then(() => {
+                      const left = (discussion.attribute('chirpRecordings') || []).filter((r: Rec) => r.id !== rec.id);
+                      discussion.pushAttributes({ chirpRecordings: left });
+                      this.selected = -1;
+                      m.redraw();
+                    });
+                },
+              })
+            )
+          : null,
       ].filter(Boolean)
     );
   }

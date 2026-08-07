@@ -115,6 +115,15 @@ class DiscussionFields
                     }
                 }),
 
+            Schema\Boolean::make('chirpCanDeleteRecordings')
+                ->get(function ($discussion, $context) {
+                    try {
+                        return $context->getActor()->can('chirpDeleteRecording', $discussion);
+                    } catch (\Throwable) {
+                        return false;
+                    }
+                }),
+
             Schema\Arr::make('chirpRecordings')
                 ->get(function ($discussion) {
                     try {

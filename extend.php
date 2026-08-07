@@ -78,6 +78,7 @@ return [
         ->post('/chirp/rooms/{id:\d+}/token', 'chirp.rooms.token', JoinTokenController::class)
         ->post('/chirp/recordings', 'chirp.recordings.receive', \LinkRobins\Chirp\Http\ReceiveRecordingController::class)
         ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class)
+        ->delete('/chirp/recordings/{id:\d+}', 'chirp.recordings.delete', \LinkRobins\Chirp\Http\DeleteRecordingController::class)
         // Speaker policies: the host flips the room's policy live; hands are
         // raised/resolved server-side (the token endpoint enforces), with
         // data-channel pings making the UI instant.
