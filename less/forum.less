@@ -12,8 +12,7 @@
 .ChirpBadge,
 .ChirpBar,
 .ChirpChip,
-.ChirpDock,
-.ChirpRecordingStrip {
+.ChirpDock {
   --chirp-hot: #e8442e;
   --chirp-cool: #1ec3d6;
   --chirp-on-hot: #fff;
@@ -23,8 +22,7 @@ html.chirp-blend {
   .ChirpBadge,
   .ChirpBar,
   .ChirpChip,
-  .ChirpDock,
-  .ChirpRecordingStrip {
+  .ChirpDock {
     --chirp-hot: var(--primary-color);
     --chirp-cool: var(--secondary-color);
     --chirp-on-hot: var(--button-primary-color, #fff);
@@ -72,44 +70,47 @@ html.chirp-blend {
   }
 }
 
-// ── Recording strips: under the first post — where the show lives on ───────
-.ChirpRecordingStrip {
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background:
-    linear-gradient(120deg, color-mix(in srgb, var(--chirp-hot) 6%, transparent) 0%, color-mix(in srgb, var(--chirp-cool) 7%, transparent) 55%, transparent 100%),
-    var(--body-bg);
-  border: 1px solid color-mix(in srgb, var(--chirp-cool) 25%, transparent);
+// ── The recording bar: the live bar's afterlife, same spot, same frame ─────
+// A ChirpBar variant, so it inherits the accent frame, blend mode, and the
+// list-row static positioning of --inline for free. Static in flow: nothing
+// to reach for, so no sticky/dock.
+.ChirpBar--recording {
+  cursor: auto;
 }
 
-.ChirpRecordingStrip-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  color: var(--muted-color);
-  font-size: calc(13px * var(--lr-ui-scale, 1));
-  font-weight: 600;
-
-  .icon {
-    color: var(--chirp-hot);
-  }
+// A recorded artifact doesn't pulse.
+.ChirpBadge--still::before {
+  animation: none;
 }
 
-.ChirpRecordingStrip-time {
-  margin-left: auto;
-  font-weight: 400;
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+.ChirpRecordingBar-meta {
+  white-space: nowrap;
 }
 
-.ChirpRecordingStrip audio {
+.ChirpRecordingBar-player {
   display: block;
-  // NOT width: min(420px, 100%) — less.php eats CSS min()/max() as ITS OWN
-  // functions and throws "incompatible types" on mixed units, which kills
-  // the whole forum stylesheet (sitewide 500).
-  width: 100%;
+  flex: 1 1 240px;
+  min-width: 0;
   height: 36px;
+}
+
+@media (max-width: 767px) {
+  // Beats the phone rule that docks .ChirpBar to the viewport — the
+  // recording bar stays in flow above the posts (same escape the list-row
+  // variant uses).
+  .ChirpBar--recording {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    margin: 0 0 20px;
+    box-shadow: 0 1px 2px fade(#000, 6%);
+  }
+
+  .ChirpRecordingBar-player {
+    flex-basis: 100%;
+  }
 }
 
 .ChirpBar {

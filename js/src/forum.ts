@@ -7,7 +7,7 @@ import m from 'mithril';
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
-import ChirpRecordingStrip from './components/ChirpRecordingStrip';
+import ChirpRecordingBar from './components/ChirpRecordingBar';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
@@ -55,17 +55,6 @@ app.initializers.add('linkrobins-chirp', () => {
   const forumAttrs = (app.data?.resources as any[] | undefined)?.find((r) => r?.type === 'forums')?.attributes;
   document.documentElement.classList.toggle('chirp-blend', forumAttrs?.chirpAppearance === 'forum');
 
-  // Recordings render under the FIRST post — where the show lives.
-  extend('flarum/forum/components/CommentPost', 'footerItems', function (this: any, items: any) {
-    const post = this.attrs.post;
-    if (!post || post.number() !== 1) return;
-
-    const recordings = post.discussion?.()?.attribute?.('chirpRecordings') || [];
-    if (!recordings.length) return;
-
-    items.add('chirp-recordings', m(ChirpRecordingStrip, { recordings }), 100);
-  });
-
   // The dock lives OUTSIDE the SPA root so listening survives navigation.
   const dock = document.createElement('div');
   dock.id = 'chirp-dock';
@@ -75,13 +64,22 @@ app.initializers.add('linkrobins-chirp', () => {
   // The live bar sits ABOVE THE POST STREAM, not in the hero: the hero renders
   // its items (tags, title, badges) in one <ul>, so a bar added there lines up
   // beside the tag chips and looks wedged in. Here it gets its own full-width
-  // row directly over the conversation it belongs to.
+  // row directly over the conversation it belongs to. When the room is over,
+  // the SAME spot holds the recording bar — where the room was, the recording
+  // remains (the live bar owns the spot while a room is actually on).
   extend('flarum/forum/components/DiscussionPage', 'view', function (this: any, vnode: any) {
     const discussion = this.discussion;
-    if (!discussion?.attribute?.('chirpIsLive')) return;
-    if (!vnode || !Array.isArray(vnode.children)) return;
+    if (!discussion || !vnode || !Array.isArray(vnode.children)) return;
 
-    vnode.children.unshift(m(ChirpBar, { discussion, state }));
+    if (discussion.attribute?.('chirpIsLive')) {
+      vnode.children.unshift(m(ChirpBar, { discussion, state }));
+      return;
+    }
+
+    const recordings = discussion.attribute?.('chirpRecordings') || [];
+    if (recordings.length) {
+      vnode.children.unshift(m(ChirpRecordingBar, { recordings }));
+    }
   });
 
   // "Go live" in the discussion controls for people who hold chirpStart.

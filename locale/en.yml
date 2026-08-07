@@ -54,7 +54,7 @@ linkrobins-chirp:
     mic_denied: Your browser blocked the microphone — check the permission and try again.
     recording_badge: REC
     recording_title: This room is being recorded — the audio will be posted in the discussion.
-    recording_label: "Live room recording · {duration}"
+    recorded_badge: RECORDED
     channel_busy_elsewhere: >
       Your channel is already live on another discussion. End that room first —
       or add another channel on linkrobins.com to run rooms side by side.
