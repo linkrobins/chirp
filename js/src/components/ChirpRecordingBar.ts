@@ -1,6 +1,9 @@
 import app from 'flarum/forum/app';
 import Component from 'flarum/common/Component';
 import m from 'mithril';
+import type Mithril from 'mithril';
+
+import ComposerTracker from '../composerTracker';
 
 interface Rec {
   id: number;
@@ -11,44 +14,76 @@ interface Rec {
 const WAVE_BARS = 14;
 
 /**
- * The room's afterlife: same ChirpBar, same spot above the post stream, but
- * the live controls give way to the recording. RECORDED badge, the idle
- * waveform silhouette (visual continuity with the live bar), duration/date,
- * and the player where the actions were. Static in flow — nothing to reach
- * for, so no sticky/dock behaviour. One bar per recording, oldest first.
- * Hidden while a room is actually live (the live bar owns the spot).
+ * The room's afterlife: the SAME persistent bar the live session had —
+ * sticky on desktop, docked to the bottom on phones, riding above the
+ * composer — but the live controls give way to the recording. RECORDED
+ * badge (pulse stilled), the idle waveform silhouette for continuity,
+ * duration/date, and the player where the actions were. One bar; when a
+ * discussion has hosted several rooms, a small picker switches between
+ * recordings (stacked docks can't work). Hidden while a room is actually
+ * live — the live bar owns the spot.
  */
 export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> {
+  private selected = -1; // -1 = latest
+  private tracker = new ComposerTracker('chirp-recorded');
+
+  oncreate(vnode: Mithril.VnodeDOM<{ recordings: Rec[] }>) {
+    super.oncreate(vnode);
+    this.tracker.start();
+  }
+
+  onupdate(vnode: Mithril.VnodeDOM<{ recordings: Rec[] }>) {
+    super.onupdate(vnode);
+    this.tracker.update();
+  }
+
+  onremove(vnode: Mithril.VnodeDOM<{ recordings: Rec[] }>) {
+    super.onremove(vnode);
+    this.tracker.stop();
+  }
+
   view() {
     const t = (k: string, params?: any) => app.translator.trans('linkrobins-chirp.forum.' + k, params);
+    const recordings = this.attrs.recordings;
+    const index = this.selected >= 0 && this.selected < recordings.length ? this.selected : recordings.length - 1;
+    const rec = recordings[index];
+    if (!rec) return null;
 
-    return m(
-      '.ChirpRecordingBars',
-      this.attrs.recordings.map((rec) => {
-        const total = Math.max(0, Number(rec.duration || 0));
-        const h = Math.floor(total / 3600);
-        const min = Math.floor((total % 3600) / 60);
-        const sec = total % 60;
-        const two = (n: number) => String(n).padStart(2, '0');
-        const dur = h > 0 ? `${h}:${two(min)}:${two(sec)}` : `${min}:${two(sec)}`;
-        const src = `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}/audio`;
+    const total = Math.max(0, Number(rec.duration || 0));
+    const h = Math.floor(total / 3600);
+    const min = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    const two = (n: number) => String(n).padStart(2, '0');
+    const dur = h > 0 ? `${h}:${two(min)}:${two(sec)}` : `${min}:${two(sec)}`;
+    const src = `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}/audio`;
 
-        return m('.ChirpBar.ChirpBar--inline.ChirpBar--recording', { key: String(rec.id) }, [
-          m('.ChirpBar-live', [
-            m('span.ChirpBadge.ChirpBadge--rec.ChirpBadge--still', t('recorded_badge')),
-            m(
-              '.ChirpWave',
-              { 'aria-hidden': 'true' },
-              Array.from({ length: WAVE_BARS }, () => m('span.ChirpWave-bar'))
-            ),
-          ]),
-          m('span.ChirpBar-count.ChirpRecordingBar-meta', [
-            dur,
-            rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '',
-          ]),
-          m('audio.ChirpRecordingBar-player', { controls: true, preload: 'metadata', src }),
-        ]);
-      })
-    );
+    return m('.ChirpBar.ChirpBar--recording', [
+      m('.ChirpBar-live', [
+        m('span.ChirpBadge.ChirpBadge--rec.ChirpBadge--still', t('recorded_badge')),
+        m(
+          '.ChirpWave',
+          { 'aria-hidden': 'true' },
+          Array.from({ length: WAVE_BARS }, () => m('span.ChirpWave-bar'))
+        ),
+      ]),
+      recordings.length > 1
+        ? m(
+            'select.FormControl.ChirpRecordingBar-pick',
+            {
+              value: String(index),
+              onchange: (e: Event) => {
+                this.selected = Number((e.target as HTMLSelectElement).value);
+              },
+            },
+            recordings.map((r, i) =>
+              m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : `#${r.id}`)
+            )
+          )
+        : null,
+      m('span.ChirpBar-count.ChirpRecordingBar-meta', [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
+      // key: switching recordings must swap the element, not just the src —
+      // a playing <audio> ignores src changes until load() is called.
+      m('audio.ChirpRecordingBar-player', { key: String(rec.id), controls: true, preload: 'metadata', src }),
+    ]);
   }
 }
