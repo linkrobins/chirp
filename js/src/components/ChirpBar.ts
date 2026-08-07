@@ -111,6 +111,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       '.ChirpBar',
       {
         className: [state.anyoneSpeaking ? 'ChirpBar--active' : '', this.attrs.inline ? 'ChirpBar--inline' : ''].join(' ').trim(),
+        // Lets the floating dock know this room already has controls on screen.
+        'data-chirp-room': String(id),
         // In a list row, the controls must not trigger the row's navigation.
         onclick: this.attrs.inline ? (e: Event) => e.stopPropagation() : undefined,
       },

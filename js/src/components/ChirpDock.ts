@@ -23,9 +23,9 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
 
     if (!state.connected()) return null;
 
-    // On the room's own page the full bar is already on screen.
-    const viewing = app.current?.get?.('discussion');
-    if (viewing && Number(viewing.id()) === state.discussionId) return null;
+    // Stand down wherever the room's own toolbar is already on screen — its
+    // discussion page, or its row in the discussion list.
+    if (document.querySelector(`.ChirpBar[data-chirp-room="${state.discussionId}"]`)) return null;
 
     const speakers = state.speakers();
 
