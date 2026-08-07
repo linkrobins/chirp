@@ -54,6 +54,20 @@ export default class ChirpState {
   canPublish = false;
   muted = false;
 
+  /** True while the page is being torn down. livekit-client disconnects the
+   *  room itself on page leave ("Page leave detected"), which fires our
+   *  Disconnected → cleanup() — and cleanup must NOT clear the resume marker
+   *  in that one case, or a refresh could never restore the session. */
+  private unloading = false;
+
+  constructor() {
+    const mark = () => { this.unloading = true; };
+    window.addEventListener('beforeunload', mark);
+    window.addEventListener('pagehide', mark);
+    // Back-forward cache can revive the page after 'pagehide' — reset.
+    window.addEventListener('pageshow', () => { this.unloading = false; });
+  }
+
   /** Identities currently talking, from LiveKit's speaker detection. */
   private active = new Set<string>();
   /** Who talked last — keeps the bar's featured avatar steady between turns. */
@@ -315,7 +329,7 @@ export default class ChirpState {
   }
 
   private cleanup(): void {
-    this.clearResume();
+    if (!this.unloading) this.clearResume();
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
     this.active = new Set();
