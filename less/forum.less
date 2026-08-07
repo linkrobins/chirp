@@ -74,19 +74,11 @@ html.chirp-blend {
 // A ChirpBar variant, so it inherits the accent frame, blend mode, and the
 // list-row static positioning of --inline for free. Static in flow: nothing
 // to reach for, so no sticky/dock.
-// COMPOUND selector on purpose: .ChirpBar--recording alone is (0,1,0) —
-// equal to .ChirpBar — so the phone fixed-dock rule, which lands LATER in
-// the compiled bundle, would win on source order. .ChirpBar.ChirpBar--recording
-// is (0,2,0) and beats both the base sticky and the phone dock on every
-// viewport regardless of order.
-.ChirpBar.ChirpBar--recording {
+// The recording bar inherits the live bar's positioning wholesale — sticky
+// on desktop, bottom-docked on phones, composer-aware (Karl: persistence IS
+// the mechanism). Only the interaction affordances differ.
+.ChirpBar--recording {
   cursor: auto;
-  position: static;
-  top: auto;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  z-index: auto;
 }
 
 // A recorded artifact doesn't pulse.
@@ -105,12 +97,15 @@ html.chirp-blend {
   height: 36px;
 }
 
-@media (max-width: 767px) {
-  .ChirpBar--recording {
-    margin: 0 0 20px;
-    box-shadow: 0 1px 2px fade(#000, 6%);
-  }
+.ChirpRecordingBar-pick {
+  width: auto;
+  max-width: 130px;
+  height: 30px;
+  padding: 2px 8px;
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+}
 
+@media (max-width: 767px) {
   .ChirpRecordingBar-player {
     flex-basis: 100%;
   }
@@ -310,7 +305,8 @@ html.chirp-blend {
   }
 
   // Reserve room so the last post never hides under the docked bar.
-  html.chirp-live .App-content {
+  html.chirp-live .App-content,
+  html.chirp-recorded .App-content {
     padding-bottom: calc(116px + var(--chirp-composer-h, 0px));
   }
 

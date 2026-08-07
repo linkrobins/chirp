@@ -5,6 +5,7 @@ import Tooltip from 'flarum/common/components/Tooltip';
 import type Mithril from 'mithril';
 import m from 'mithril';
 import type ChirpState from '../ChirpState';
+import ComposerTracker from '../composerTracker';
 
 interface ChirpBarAttrs extends ComponentAttrs {
   discussion: any;
@@ -24,79 +25,23 @@ const WAVE_BARS = 14;
  */
 export default class ChirpBar extends Component<ChirpBarAttrs> {
   // Phones dock the bar over the content, so the page needs bottom padding
-  // while one is mounted (see forum.less).
-  private composerWatch?: ResizeObserver;
-  private domWatch?: MutationObserver;
+  // while one is mounted (see forum.less). The composer plumbing is shared
+  // with the recording bar — see composerTracker.ts.
+  private tracker = new ComposerTracker('chirp-live');
 
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.oncreate(vnode);
-    document.documentElement.classList.add('chirp-live');
-    this.trackComposer();
-
-    // The composer element is created lazily and its open/minimise state
-    // doesn't always re-render THIS component, so watch the DOM for it
-    // rather than relying on redraws alone.
-    this.domWatch = new MutationObserver(() => this.trackComposer());
-    this.domWatch.observe(document.body, { childList: true, subtree: true });
+    this.tracker.start();
   }
 
   onupdate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.onupdate(vnode);
-    this.trackComposer();
+    this.tracker.update();
   }
 
   onremove(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.onremove(vnode);
-    document.documentElement.classList.remove('chirp-live', 'chirp-composer-full');
-    document.documentElement.style.removeProperty('--chirp-composer-h');
-    this.composerWatch?.disconnect();
-    this.composerWatch = undefined;
-    this.domWatch?.disconnect();
-    this.domWatch = undefined;
-  }
-
-  /**
-   * On phones the bar is docked to the bottom — exactly where Flarum's
-   * composer lives. Publish how much of the bottom edge the composer covers
-   * as --chirp-composer-h so the bar rides above it instead of being
-   * covered, and step aside once the composer takes over most of the screen.
-   *
-   * NB: measure `.Composer` (the actual overlay, added when a composer
-   * opens), not `.App-composer` — that wrapper is a zero-height placeholder
-   * parked at the end of the document.
-   */
-  private trackComposer(): void {
-    const composer = document.querySelector('.Composer') as HTMLElement | null;
-    const root = document.documentElement;
-
-    if (!composer) {
-      root.style.setProperty('--chirp-composer-h', '0px');
-      root.classList.remove('chirp-composer-full');
-      this.composerWatch?.disconnect();
-      this.composerWatch = undefined;
-      return;
-    }
-
-    const measure = () => {
-      const rect = composer.getBoundingClientRect();
-      const style = getComputedStyle(composer);
-      const hidden = style.display === 'none' || style.visibility === 'hidden' || rect.height === 0;
-      // Only what actually covers the bottom edge pushes the bar up.
-      const anchoredToBottom = !hidden && rect.bottom >= window.innerHeight - 2;
-      const covered = anchoredToBottom ? Math.max(0, Math.round(window.innerHeight - rect.top)) : 0;
-
-      root.style.setProperty('--chirp-composer-h', `${covered}px`);
-      root.classList.toggle('chirp-composer-full', covered > window.innerHeight * 0.4);
-    };
-
-    measure();
-
-    if (!this.composerWatch && 'ResizeObserver' in window) {
-      // Keeps up with the open/minimise animations, which finish long after
-      // the redraw that triggered them.
-      this.composerWatch = new ResizeObserver(measure);
-      this.composerWatch.observe(composer);
-    }
+    this.tracker.stop();
   }
 
   view(): Mithril.Children {
