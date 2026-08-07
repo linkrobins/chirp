@@ -5,6 +5,7 @@ import Tooltip from 'flarum/common/components/Tooltip';
 import type Mithril from 'mithril';
 import m from 'mithril';
 import type ChirpState from '../ChirpState';
+import ChirpParticipantsModal from './ChirpParticipantsModal';
 import ComposerTracker from '../composerTracker';
 
 interface ChirpBarAttrs extends ComponentAttrs {
@@ -24,9 +25,6 @@ const WAVE_BARS = 14;
  * you are. The thread below is still the chat — this stays one strip.
  */
 export default class ChirpBar extends Component<ChirpBarAttrs> {
-  /** Host moderation: the speaker identity whose action chip is open. */
-  private modTarget: string | null = null;
-
   // Phones dock the bar over the content, so the page needs bottom padding
   // while one is mounted (see forum.less). The composer plumbing is shared
   // with the recording bar — see composerTracker.ts.
@@ -61,9 +59,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     const id = Number(discussion.id());
     const joined = state.inDiscussion(id);
     const speakers = state.speakers();
+    const featured = state.featuredSpeaker();
     const mode = (discussion.attribute('chirpRoomMode') as string) || 'live';
-    const isHostView = !!discussion.attribute('canChirpStart') || Number(app.session.user?.id() || 0) === Number(discussion.attribute('chirpRoomHostId') || 0);
-    const ownIdentity = 'u' + (app.session.user?.id() || 0);
     const listeners = state.listenerCount();
 
     return m(
@@ -89,57 +86,35 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           ),
         ]),
 
-        // ── The stage ───────────────────────────────────────────────────────
-        speakers.length
-          ? m(
-              '.ChirpBar-stage',
-              speakers.map((s) =>
+        // ── The stage: only whoever is talking (a big stage would flood the
+        //    strip — the ⋯ modal holds the full roster + host moderation). ──
+        featured
+          ? m('.ChirpBar-stage', [
+              m(
+                Tooltip,
+                { text: featured.muted ? t('speaker_muted', { name: featured.name }) : featured.name },
                 m(
-                  Tooltip,
-                  { text: s.muted ? t('speaker_muted', { name: s.name }) : s.name },
-                  m(
-                    'span.ChirpSpeaker',
-                    {
-                      className: [s.speaking ? 'is-speaking' : '', s.muted ? 'is-muted' : '', isHostView && s.key !== ownIdentity && /^u\d+$/.test(s.key) ? 'is-moderatable' : ''].join(' ').trim(),
-                      style: { background: s.color },
-                      onclick: isHostView && s.key !== ownIdentity && /^u\d+$/.test(s.key)
-                        ? (e: Event) => { e.stopPropagation(); this.modTarget = this.modTarget === s.key ? null : s.key; }
-                        : undefined,
-                    },
-                    s.initial
-                  )
+                  'span.ChirpSpeaker',
+                  {
+                    className: [featured.speaking ? 'is-speaking' : '', featured.muted ? 'is-muted' : ''].join(' ').trim(),
+                    style: { background: featured.color },
+                    onclick: joined ? (e: Event) => { e.stopPropagation(); this.openRoster(); } : undefined,
+                  },
+                  featured.initial
                 )
-              )
-            )
-          : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
-
-        // ── Host moderation chip for the selected speaker ──────────────────
-        this.modTarget && speakers.some((sp) => sp.key === this.modTarget)
-          ? m('span.ChirpHand.ChirpModChip', [
-              m('span.ChirpHand-name', speakers.find((sp) => sp.key === this.modTarget)?.name || ''),
-              m(Button, {
-                className: 'Button Button--size-sm',
-                icon: 'fas fa-microphone-slash',
-                title: String(t('unstage')),
-                onclick: () => {
-                  const target = this.modTarget!;
-                  this.modTarget = null;
-                  state.moderate(id, target, 'unstage');
-                },
-              }),
-              m(Button, {
-                className: 'Button Button--size-sm ChirpHand-no',
-                icon: 'fas fa-user-slash',
-                title: String(t('kick')),
-                onclick: () => {
-                  if (!confirm(String(t('confirm_kick')))) return;
-                  const target = this.modTarget!;
-                  this.modTarget = null;
-                  state.moderate(id, target, 'kick');
-                },
-              }),
+              ),
+              speakers.length > 1 ? m('span.ChirpBar-morecount', `+${speakers.length - 1}`) : null,
+              joined
+                ? m(Button, {
+                    className: 'Button Button--icon Button--flat ChirpBar-roster',
+                    icon: 'fas fa-ellipsis',
+                    'aria-label': t('participants'),
+                    title: String(t('participants')),
+                    onclick: (e: Event) => { e.stopPropagation(); this.openRoster(); },
+                  })
+                : null,
             ])
-          : null,
+          : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
 
         // ── Audience: the number alone; the icon says what it counts, and the
         //    full sentence lives in the tooltip. ─────────────────────────────
@@ -153,6 +128,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         m('.ChirpBar-actions', this.controls(id, joined)),
       ]
     );
+  }
+
+  private openRoster(): void {
+    app.modal.show(ChirpParticipantsModal, { discussion: this.attrs.discussion, chirp: this.attrs.state });
   }
 
   private controls(id: number, joined: boolean): Mithril.Children[] {
