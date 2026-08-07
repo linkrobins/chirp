@@ -21,6 +21,18 @@ const WAVE_BARS = 14;
  * you are. The thread below is still the chat — this stays one strip.
  */
 export default class ChirpBar extends Component<ChirpBarAttrs> {
+  // Phones dock the bar over the content, so the page needs bottom padding
+  // while one is mounted (see forum.less).
+  oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
+    super.oncreate(vnode);
+    document.documentElement.classList.add('chirp-live');
+  }
+
+  onremove(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
+    super.onremove(vnode);
+    document.documentElement.classList.remove('chirp-live');
+  }
+
   view(): Mithril.Children {
     const t = (k: string, data?: any) => app.translator.trans('linkrobins-chirp.forum.' + k, data);
     const { discussion, state } = this.attrs;
