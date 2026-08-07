@@ -384,7 +384,13 @@ export default class ChirpState {
         const current: any = (app as any).current;
         const disc = current?.get?.('discussion');
         if (disc && Number(disc.id()) === this.discussionId) {
-          current.get('stream')?.update?.()?.then?.(() => m.redraw());
+          // Re-fetch the discussion FIRST: stream.update() sizes its load
+          // against the local commentCount, which doesn't know about the
+          // post yet — updating against the stale count loads nothing.
+          (app.store.find('discussions', String(this.discussionId)) as Promise<any>)
+            .then(() => current.get('stream')?.update?.())
+            .then(() => m.redraw())
+            .catch(() => {});
         }
         break;
       }
