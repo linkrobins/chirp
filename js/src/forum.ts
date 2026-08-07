@@ -12,20 +12,6 @@ import ChirpDock from './components/ChirpDock';
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
 
-/** Depth-limited search for the row's content box vnode. */
-function findContent(vnode: any, depth = 0): any {
-  if (!vnode || depth > 4) return null;
-  const cls = vnode.attrs?.className ?? vnode.attrs?.class ?? '';
-  if (typeof cls === 'string' && cls.includes('DiscussionListItem-content')) return vnode;
-
-  const kids = Array.isArray(vnode.children) ? vnode.children : [];
-  for (const kid of kids) {
-    const hit = findContent(kid, depth + 1);
-    if (hit) return hit;
-  }
-  return null;
-}
-
 app.initializers.add('linkrobins-chirp', () => {
   // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
   // tracked data changes, so the chip would never repaint when you join or
@@ -43,13 +29,14 @@ app.initializers.add('linkrobins-chirp', () => {
     const discussion = this.attrs.discussion;
     if (!discussion?.attribute?.('chirpIsLive')) return;
 
-    // Insert INTO the row's content box (which owns the row's padding), not
-    // as a sibling of it — that way the toolbar lines up with the row's own
-    // edges instead of needing hand-tuned margins that drift per theme.
-    const content = findContent(vnode);
-    if (!content || !Array.isArray(content.children)) return;
+    // Append to the ROW (not its inner content box): a plain block child of
+    // the row inherits the row's own padding box on both sides, so the
+    // toolbar's edges match the row exactly with no tuned margins. Inside the
+    // content box it would inherit that box's extra right padding instead and
+    // stop short of the row's edge.
+    if (!vnode || !Array.isArray(vnode.children)) return;
 
-    content.children.push(m(ChirpBar, { discussion, state, inline: true }));
+    vnode.children.push(m(ChirpBar, { discussion, state, inline: true }));
   });
 
   // The dock lives OUTSIDE the SPA root so listening survives navigation.
