@@ -525,6 +525,13 @@ html.chirp-blend {
     padding: 10px 12px;
   }
 
+  // Listening to room A while viewing a RECORDED discussion B: both the dock
+  // and B's recording bar legitimately dock to the bottom — lift the dock
+  // above the recording bar instead of stacking on top of it.
+  html.chirp-recorded .ChirpDock {
+    bottom: calc(112px + var(--chirp-composer-h, 0px));
+  }
+
   html.chirp-composer-full .ChirpDock {
     opacity: 0;
     pointer-events: none;
