@@ -14,6 +14,9 @@ import ChirpRoomStartedNotification from './components/ChirpRoomStartedNotificat
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
+// Debugging handle for bench drills — harmless in production (everything on
+// it is reachable through the UI anyway).
+(window as any).__chirp = state;
 
 app.initializers.add('linkrobins-chirp', () => {
   // Followers hear about rooms opening.
