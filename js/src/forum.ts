@@ -14,6 +14,16 @@ import ChirpDock from './components/ChirpDock';
 const state = new ChirpState();
 
 app.initializers.add('linkrobins-chirp', () => {
+  // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
+  // tracked data changes, so the chip would never repaint when you join or
+  // leave. Register the bits of room state the chip renders from.
+  extend('flarum/forum/components/DiscussionListItem', 'oninit', function (this: any) {
+    this.subtree?.check?.(
+      () => state.discussionId,
+      () => state.connecting
+    );
+  });
+
   // The list marker doubles as the join control (see ChirpChip).
   extend('flarum/forum/components/DiscussionListItem', 'infoItems', function (this: any, items: any) {
     const discussion = this.attrs.discussion;
