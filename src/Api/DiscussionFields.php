@@ -12,16 +12,16 @@ use LinkRobins\Chirp\Room;
  * throw in any getter degrades to false rather than 500ing the whole
  * discussion list.
  *
- * N+1 note: the channel has at most ONE live room forum-wide, so instead of a
- * per-row relationship read we resolve the live discussion id once per
- * request and compare ids — one 0-or-1-row query per request, zero per row.
- * The memo lives on this instance (container-resolved per request), never in
- * a static, per the persistent-runtime rule.
+ * N+1 note: rooms are ONE live show forum-wide plus a handful of designated
+ * voice channels, so instead of a per-row relationship read we load the whole
+ * (tiny) table once per request and index by discussion id — one query per
+ * request, zero per row. The memo lives on this instance (container-resolved
+ * per request), never in a static, per the persistent-runtime rule.
  */
 class DiscussionFields
 {
-    /** @var Room|false|null null = not fetched yet; false = no live room */
-    private Room|false|null $liveRoom = null;
+    /** @var array<int, Room>|null keyed by discussion_id; null = not fetched */
+    private ?array $rooms = null;
 
     /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
     private ?array $recordings = null;
@@ -36,7 +36,7 @@ class DiscussionFields
             Schema\Boolean::make('chirpIsLive')
                 ->get(function ($discussion) {
                     try {
-                        return $this->liveId() === (int) $discussion->id;
+                        return $this->roomFor((int) $discussion->id) !== null;
                     } catch (\Throwable) {
                         return false;
                     }
@@ -71,9 +71,9 @@ class DiscussionFields
                 ->nullable()
                 ->get(function ($discussion) {
                     try {
-                        $room = $this->liveRoom();
+                        $room = $this->roomFor((int) $discussion->id);
 
-                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (string) $room->speak_policy : null;
+                        return $room ? (string) $room->speak_policy : null;
                     } catch (\Throwable) {
                         return null;
                     }
@@ -83,9 +83,9 @@ class DiscussionFields
                 ->nullable()
                 ->get(function ($discussion) {
                     try {
-                        $room = $this->liveRoom();
+                        $room = $this->roomFor((int) $discussion->id);
 
-                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (string) $room->mode : null;
+                        return $room ? (string) $room->mode : null;
                     } catch (\Throwable) {
                         return null;
                     }
@@ -95,9 +95,9 @@ class DiscussionFields
                 ->nullable()
                 ->get(function ($discussion) {
                     try {
-                        $room = $this->liveRoom();
+                        $room = $this->roomFor((int) $discussion->id);
 
-                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (int) $room->user_id : null;
+                        return $room ? (int) $room->user_id : null;
                     } catch (\Throwable) {
                         return null;
                     }
@@ -106,8 +106,8 @@ class DiscussionFields
             Schema\Boolean::make('chirpSpeakEligible')
                 ->get(function ($discussion, $context) {
                     try {
-                        $room = $this->liveRoom();
-                        if (!$room || (int) $room->discussion_id !== (int) $discussion->id) {
+                        $room = $this->roomFor((int) $discussion->id);
+                        if (!$room) {
                             return false;
                         }
                         $actor = $context->getActor();
@@ -122,6 +122,18 @@ class DiscussionFields
                         }
 
                         return $actor->can('chirpSpeak', $discussion);
+                    } catch (\Throwable) {
+                        return false;
+                    }
+                }),
+
+            // Designating a discussion as a standing voice channel is admin
+            // infrastructure, deliberately NOT riding chirpStart.
+            Schema\Boolean::make('chirpCanDesignate')
+                ->get(function ($discussion, $context) {
+                    try {
+                        return $this->settings->get('linkrobins-chirp.connected') === '1'
+                            && $context->getActor()->isAdmin();
                     } catch (\Throwable) {
                         return false;
                     }
@@ -174,20 +186,17 @@ class DiscussionFields
         return $this->recordings[$discussionId] ?? [];
     }
 
-    private function liveId(): int|false
+    /** This discussion's room (live show or voice channel), from the once-
+     *  per-request map of the whole tiny table. */
+    private function roomFor(int $discussionId): ?Room
     {
-        $room = $this->liveRoom();
-
-        return $room ? (int) $room->discussion_id : false;
-    }
-
-    /** The 0-or-1 live room row, fetched once per request (same memo rule). */
-    private function liveRoom(): Room|false
-    {
-        if ($this->liveRoom === null) {
-            $this->liveRoom = Room::query()->first() ?: false;
+        if ($this->rooms === null) {
+            $this->rooms = [];
+            foreach (Room::query()->get() as $room) {
+                $this->rooms[(int) $room->discussion_id] = $room;
+            }
         }
 
-        return $this->liveRoom;
+        return $this->rooms[$discussionId] ?? null;
     }
 }

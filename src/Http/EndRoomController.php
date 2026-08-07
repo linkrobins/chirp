@@ -33,7 +33,11 @@ class EndRoomController implements RequestHandlerInterface
         /** @var Room $room */
         $room = Room::query()->where('discussion_id', $discussionId)->firstOrFail();
 
-        if ($room->user_id !== $actor->id) {
+        if ($room->mode === 'persistent') {
+            // A designated voice channel is admin infrastructure — only an
+            // admin removes the designation (from the admin panel or here).
+            $actor->assertAdmin();
+        } elseif ($room->user_id !== $actor->id) {
             $actor->assertCan('chirpStart', $room->discussion);
         }
 

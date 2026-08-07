@@ -15,10 +15,10 @@ use Flarum\Testing\integration\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
- * Room modes (live vs persistent voice channel), stage moderation auth, and
- * go-live notifications to followers. The LiveKit API is unreachable in the
- * harness — every server call is fail-soft by design, so the DB rows and
- * HTTP statuses are the observable truth.
+ * Room modes: 'live' shows vs ADMIN-designated persistent voice channels,
+ * stage moderation auth, and go-live notifications to followers. The LiveKit
+ * API is unreachable in the harness — every server call is fail-soft by
+ * design, so the DB rows and HTTP statuses are the observable truth.
  */
 class RoomModesTest extends TestCase
 {
@@ -35,13 +35,19 @@ class RoomModesTest extends TestCase
                 $this->normalUser(), // id 2
                 ['id' => 3, 'username' => 'follower', 'email' => 'follower@example.test', 'password' => '$2y$10$LO5oGKgGcHOAdSTPjPX6SuXpUdLpJRbaBWQRpJT8zx6EmSbY.pYCK', 'is_email_confirmed' => 1],
             ],
+            'group_user' => [
+                // User 2 is a moderator: holds chirpStart but is NOT an admin.
+                ['user_id' => 2, 'group_id' => 4],
+            ],
             'discussions' => [
                 ['id' => 1, 'title' => 'Show night', 'slug' => 'show-night', 'created_at' => Carbon::now(), 'user_id' => 2, 'first_post_id' => 1, 'comment_count' => 1],
-                ['id' => 2, 'title' => 'Other', 'slug' => 'other', 'created_at' => Carbon::now(), 'user_id' => 2, 'first_post_id' => 2, 'comment_count' => 1],
+                ['id' => 2, 'title' => 'Hangout', 'slug' => 'hangout', 'created_at' => Carbon::now(), 'user_id' => 2, 'first_post_id' => 2, 'comment_count' => 1],
+                ['id' => 3, 'title' => 'Lounge', 'slug' => 'lounge', 'created_at' => Carbon::now(), 'user_id' => 2, 'first_post_id' => 3, 'comment_count' => 1],
             ],
             'posts' => [
                 ['id' => 1, 'discussion_id' => 1, 'created_at' => Carbon::now(), 'user_id' => 2, 'type' => 'comment', 'content' => '<t><p>hi</p></t>'],
                 ['id' => 2, 'discussion_id' => 2, 'created_at' => Carbon::now(), 'user_id' => 2, 'type' => 'comment', 'content' => '<t><p>ho</p></t>'],
+                ['id' => 3, 'discussion_id' => 3, 'created_at' => Carbon::now(), 'user_id' => 2, 'type' => 'comment', 'content' => '<t><p>he</p></t>'],
             ],
             'discussion_user' => [
                 ['discussion_id' => 1, 'user_id' => 3, 'subscription' => 'follow'],
@@ -72,23 +78,66 @@ class RoomModesTest extends TestCase
     }
 
     #[Test]
-    public function a_persistent_room_occupies_the_channel_and_skips_recording(): void
+    public function designating_a_voice_channel_is_admin_only(): void
+    {
+        $this->configure();
+
+        // A moderator with chirpStart cannot designate…
+        $denied = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 2, 'mode' => 'persistent']]));
+        $this->assertEquals(403, $denied->getStatusCode());
+
+        // …an admin can.
+        $ok = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 2, 'mode' => 'persistent']]));
+        $this->assertEquals(200, $ok->getStatusCode());
+        $this->assertEquals('persistent', $this->database()->table('chirp_rooms')->value('mode'));
+        // Voice channels are never recorded — no pending attribution row.
+        $this->assertEquals(0, $this->database()->table('chirp_recordings')->count());
+    }
+
+    #[Test]
+    public function voice_channels_do_not_block_going_live_and_coexist(): void
     {
         $this->configure();
         $this->setting('linkrobins-chirp.recordings-available', '1');
 
-        $open = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 1, 'mode' => 'persistent']]));
-        $this->assertEquals(200, $open->getStatusCode());
+        // Two designated channels coexist…
+        foreach ([2, 3] as $id) {
+            $r = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => $id, 'mode' => 'persistent']]));
+            $this->assertEquals(200, $r->getStatusCode());
+        }
+        // …and a live show still starts alongside them.
+        $live = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 1]]));
+        $this->assertEquals(200, $live->getStatusCode());
+        $this->assertEquals(3, $this->database()->table('chirp_rooms')->count());
 
-        $room = $this->database()->table('chirp_rooms')->first();
-        $this->assertEquals('persistent', $room->mode);
-        // Voice channels are never recorded — no pending attribution row.
-        $this->assertEquals(0, $this->database()->table('chirp_recordings')->count());
-
-        // Even with the LiveKit API unreachable (a dead LIVE room would be
-        // reconciled away here), a persistent room stays busy until closed.
-        $busy = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 2]]));
+        // A discussion that IS a voice channel can't also go live.
+        $busy = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 2]]));
         $this->assertEquals(409, $busy->getStatusCode());
+    }
+
+    #[Test]
+    public function removing_a_voice_channel_is_admin_only_and_listing_works(): void
+    {
+        $this->configure();
+        $this->database()->table('chirp_rooms')->insert(['id' => 1, 'discussion_id' => 2, 'user_id' => 1, 'created_at' => Carbon::now(), 'speak_policy' => 'open', 'mode' => 'persistent']);
+
+        // The moderator who could end any live show cannot remove a channel…
+        $denied = $this->send($this->request('DELETE', '/api/chirp/rooms/2', ['authenticatedAs' => 2]));
+        $this->assertEquals(403, $denied->getStatusCode());
+
+        // …and the admin list shows it until an admin removes it.
+        $list = $this->send($this->request('GET', '/api/chirp/channels', ['authenticatedAs' => 1]));
+        $this->assertEquals(200, $list->getStatusCode());
+        $channels = json_decode((string) $list->getBody(), true)['channels'];
+        $this->assertCount(1, $channels);
+        $this->assertEquals(2, $channels[0]['discussionId']);
+
+        $modList = $this->send($this->request('GET', '/api/chirp/channels', ['authenticatedAs' => 2]));
+        $this->assertEquals(403, $modList->getStatusCode());
+
+        $removed = $this->send($this->request('DELETE', '/api/chirp/rooms/2', ['authenticatedAs' => 1]));
+        $this->assertEquals(204, $removed->getStatusCode());
+        $this->assertEquals(0, $this->database()->table('chirp_rooms')->count());
     }
 
     #[Test]
