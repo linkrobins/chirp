@@ -201,19 +201,33 @@
 // Phones: row one is the room at a glance, row two is a full-width control
 // strip. (Right-aligning the wrapped buttons left a dead gap on the left.)
 @media (max-width: 767px) {
-  // Flarum sets overflow-x: hidden on <html> AND <body> for phones, which
-  // makes them scroll containers whose scrollport is the whole document —
-  // silently disabling position: sticky for everything inside. `clip` gives the identical overflow protection WITHOUT becoming
-  // a scroll container, so the bar can actually stick. Browsers without clip
-  // support just keep Flarum's behaviour (bar scrolls away) — no breakage.
-  html,
-  body {
-    overflow-x: clip;
-  }
-
+  // Phones DOCK the bar to the bottom rather than sticking it to the top:
+  // Flarum sets overflow-x: hidden on <html>/<body> at these widths, which
+  // makes them scroll containers and disables position: sticky outright
+  // (overflow-x: clip degrades back to hidden when the other axis scrolls,
+  // so there is no cheap CSS escape). Bottom-docked is the native pattern for
+  // live audio anyway: thumb-reachable, and it never fights the header.
   .ChirpBar {
+    position: fixed;
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 20;
+    margin: 0;
     gap: 10px 12px;
     padding: 12px 14px;
+    box-shadow: 0 8px 24px fade(#000, 22%);
+  }
+
+  // Reserve room so the last post never hides under the docked bar.
+  html.chirp-live .App-content {
+    padding-bottom: 116px;
+  }
+
+  // The composer owns the bottom of the screen while it is open.
+  html.composer-open .ChirpBar {
+    display: none;
   }
 
   // The waveform already says "waiting"; the sentence just eats a row.
