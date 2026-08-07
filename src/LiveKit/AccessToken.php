@@ -62,14 +62,17 @@ class AccessToken
         ], $ttlSeconds);
     }
 
-    /** A short-lived server token for room-admin API calls (list/delete). */
+    /** A short-lived server token for room-admin API calls (list/delete/create).
+     *  roomCreate rides along so CreateRoom (pre-creating a room to attach
+     *  metadata, e.g. the record flag) works with the same token. */
     public function forRoomAdmin(string $room): string
     {
         return $this->sign([
             'sub'   => 'chirp-server',
             'video' => [
-                'room'      => $room,
-                'roomAdmin' => true,
+                'room'       => $room,
+                'roomAdmin'  => true,
+                'roomCreate' => true,
             ],
         ], 60);
     }

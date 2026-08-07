@@ -7,12 +7,16 @@ import m from 'mithril';
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
+import ChirpRecordingPost from './components/ChirpRecordingPost';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
 
 app.initializers.add('linkrobins-chirp', () => {
+  // The recording event post — renders the audio player in the thread.
+  app.postComponents.chirpRecording = ChirpRecordingPost as any;
+
   // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
   // tracked data changes, so the chip would never repaint when you join or
   // leave. Register the bits of room state the chip renders from.

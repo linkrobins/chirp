@@ -21,6 +21,13 @@ linkrobins-chirp:
       live" cues stay the same either way.
     appearance_brand: Chirp brand
     appearance_forum: Match forum theme
+    record_label: Record live rooms
+    record_help: >
+      When your channel has the recordings add-on, every room is recorded and
+      the audio lands in the discussion as a post when the room ends — stored
+      on this forum, not on our servers. This switch only takes effect when
+      the add-on is active on your channel (re-save your channel key after
+      changing the add-on so this forum notices).
     # Permission-grid labels. These MUST live under admin: — Flarum ships
     # locale by frontend, so a *.forum.* key renders as the raw key here.
     permissions:
@@ -45,6 +52,9 @@ linkrobins-chirp:
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
+    recording_badge: REC
+    recording_title: This room is being recorded — the audio will be posted in the discussion.
+    recording_post: "Live room recording · {duration}"
     channel_busy_elsewhere: >
       Your channel is already live on another discussion. End that room first —
       or add another channel on linkrobins.com to run rooms side by side.

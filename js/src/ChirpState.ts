@@ -33,6 +33,9 @@ function colorFor(key: string): string {
 export default class ChirpState {
   room: any = null;
   discussionId: number | null = null;
+
+  /** The room's server-truth recording flag (recorder bot present). */
+  recording = false;
   /** Title + path of the room you're in, so the dock can label and link it. */
   roomTitle = '';
   roomPath = '';
@@ -147,12 +150,20 @@ export default class ChirpState {
       .on(RoomEvent.TrackUnmuted, touch)
       .on(RoomEvent.TrackPublished, touch)
       .on(RoomEvent.TrackUnpublished, touch)
+      // Driven by the recorder bot joining/leaving (its `recorder` grant
+      // flips the room's ActiveRecording flag server-side) — the REC badge
+      // is live truth, not a local guess.
+      .on(RoomEvent.RecordingStatusChanged, (rec: boolean) => {
+        this.recording = rec;
+        touch();
+      })
       .on(RoomEvent.Disconnected, () => {
         this.cleanup();
         m.redraw();
       });
 
     await room.connect(endpoint, token);
+    this.recording = !!room.isRecording;
 
     this.room = room;
     this.discussionId = discussionId;
@@ -200,5 +211,6 @@ export default class ChirpState {
     this.roomPath = '';
     this.canPublish = false;
     this.muted = false;
+    this.recording = false;
   }
 }

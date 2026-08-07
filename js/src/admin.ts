@@ -29,6 +29,12 @@ app.initializers.add('linkrobins-chirp', () => {
       type: 'text',
     })
     .registerSetting({
+      setting: 'linkrobins-chirp.record-rooms',
+      label: app.translator.trans('linkrobins-chirp.admin.record_label'),
+      help: app.translator.trans('linkrobins-chirp.admin.record_help'),
+      type: 'boolean',
+    })
+    .registerSetting({
       setting: 'linkrobins-chirp.appearance',
       label: app.translator.trans('linkrobins-chirp.admin.appearance_label'),
       help: app.translator.trans('linkrobins-chirp.admin.appearance_help'),
