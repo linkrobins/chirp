@@ -45,6 +45,9 @@ return [
         // Accent colors: 'brand' (Chirp's palette) or 'forum' (adopt the
         // forum's Appearance colors). Cosmetic + public, safe to serialize.
         ->default('linkrobins-chirp.appearance', 'brand')
+        // Record rooms when the channel's add-on allows it. '1' by default:
+        // buying the add-on should Just Work without a second switch hunt.
+        ->default('linkrobins-chirp.record-rooms', '1')
         ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
         ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 
@@ -65,10 +68,23 @@ return [
 
     // Room lifecycle + join tokens. Start/end are writes with explicit
     // permission gates; token is a POST (it allocates a speaker slot).
+    // Recordings: the service delivers finished files (HMAC-signed, so no
+    // Flarum auth), and playback streams through a visibility check.
     (new Extend\Routes('api'))
         ->post('/chirp/rooms', 'chirp.rooms.start', StartRoomController::class)
         ->delete('/chirp/rooms/{id:\d+}', 'chirp.rooms.end', EndRoomController::class)
-        ->post('/chirp/rooms/{id:\d+}/token', 'chirp.rooms.token', JoinTokenController::class),
+        ->post('/chirp/rooms/{id:\d+}/token', 'chirp.rooms.token', JoinTokenController::class)
+        ->post('/chirp/recordings', 'chirp.recordings.receive', \LinkRobins\Chirp\Http\ReceiveRecordingController::class)
+        ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class),
+
+    // The recording event post — the thread's permanent audio artifact.
+    (new Extend\Post())
+        ->type(\LinkRobins\Chirp\Post\RecordingPost::class),
+
+    // The delivery receiver is a server-to-server webhook (HMAC-signed by
+    // the service) — Flarum's CSRF layer would 400 it before our auth runs.
+    (new Extend\Csrf())
+        ->exemptRoute('chirp.recordings.receive'),
 
     // Expected domain failures → clean 4xx with locale-keyed messages.
     (new Extend\ErrorHandling())

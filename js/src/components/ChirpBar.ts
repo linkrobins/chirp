@@ -120,6 +120,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         // ── Live badge + waveform ───────────────────────────────────────────
         m('.ChirpBar-live', [
           m('span.ChirpBadge', t('live_badge')),
+          state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
           m(
             '.ChirpWave',
             { 'aria-hidden': 'true' },

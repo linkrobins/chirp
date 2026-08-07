@@ -2,6 +2,7 @@
 
 namespace LinkRobins\Chirp;
 
+use Flarum\Foundation\Config;
 use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
@@ -26,6 +27,7 @@ class ChirpClient
         protected SettingsRepositoryInterface $settings,
         protected LoggerInterface $log,
         protected Client $http,
+        protected Config $config,
     ) {
     }
 
@@ -40,7 +42,9 @@ class ChirpClient
 
         try {
             $response = $this->http->post($base . '/chirp/config', [
-                'form_params'     => ['token' => $token],
+                // forum_url is the DELIVERY address for finished recordings —
+                // the service POSTs signed notifications back to it.
+                'form_params'     => ['token' => $token, 'forum_url' => (string) $this->config->url()],
                 'headers'         => ['Accept' => 'application/json'],
                 'connect_timeout' => 3,
                 'timeout'         => 5,
@@ -62,6 +66,7 @@ class ChirpClient
                 'api_key'       => (string) $data['api_key'],
                 'api_secret'    => (string) $data['api_secret'],
                 'speaker_slots' => max(1, (int) Arr::get($data, 'speaker_slots', 1)),
+                'recordings'    => (bool) Arr::get($data, 'recordings', false),
             ];
         } catch (\Throwable $e) {
             $this->log->warning('Chirp: config exchange threw', ['error' => $e->getMessage()]);

@@ -41,7 +41,12 @@ class ChirpClientTest extends MockeryTestCase
             ->with('linkrobins-chirp.service-url')
             ->andReturn($serviceUrl);
 
-        return new ChirpClient($settings, new NullLogger(), new Client(['handler' => $stack]));
+        return new ChirpClient(
+            $settings,
+            new NullLogger(),
+            new Client(['handler' => $stack]),
+            new \Flarum\Foundation\Config(['url' => 'https://forum.example.test'])
+        );
     }
 
     #[Test]
@@ -63,6 +68,7 @@ class ChirpClientTest extends MockeryTestCase
             'api_key'       => 'LKabc',
             'api_secret'    => 'secret',
             'speaker_slots' => 6,
+            'recordings'    => false, // absent in the response = add-on off
         ], $config);
 
         // The key travels as a form param to the default service URL.

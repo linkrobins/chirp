@@ -7,9 +7,12 @@ use Flarum\Discussion\Discussion;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
+use Flarum\Settings\SettingsRepositoryInterface;
 use LinkRobins\Chirp\Exception\ChannelBusyException;
 use LinkRobins\Chirp\Exception\NotConfiguredException;
 use LinkRobins\Chirp\LiveKit\AccessToken;
+use LinkRobins\Chirp\LiveKit\RoomService;
+use LinkRobins\Chirp\Recording;
 use LinkRobins\Chirp\Room;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -25,8 +28,18 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class StartRoomController implements RequestHandlerInterface
 {
-    public function __construct(protected AccessToken $tokens)
+    public function __construct(
+        protected AccessToken $tokens,
+        protected RoomService $rooms,
+        protected SettingsRepositoryInterface $settings,
+    ) {
+    }
+
+    /** Recording is on when the channel PAYS for it and the admin wants it. */
+    private function recordingActive(): bool
     {
+        return $this->settings->get('linkrobins-chirp.recordings-available') === '1'
+            && $this->settings->get('linkrobins-chirp.record-rooms') !== '0';
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -55,6 +68,20 @@ class StartRoomController implements RequestHandlerInterface
                 'created_at'    => Carbon::now(),
             ]);
         });
+
+        // Recording: pre-create the LiveKit room so its metadata carries the
+        // record flag into the service's room_started webhook, and stash a
+        // pending row NOW — it's the only moment the starter is known (the
+        // room row is deleted at end, the file arrives minutes later).
+        if ($this->recordingActive()) {
+            $this->rooms->createRoom(Room::nameFor($discussion->id), ['record' => true]);
+            Recording::create([
+                'discussion_id' => $discussion->id,
+                'user_id'       => $actor->id,
+                'status'        => 'pending',
+                'created_at'    => Carbon::now(),
+            ]);
+        }
 
         return new JsonResponse([
             'endpoint' => $this->tokens->endpoint(),

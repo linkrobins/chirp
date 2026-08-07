@@ -42,6 +42,7 @@ class ExchangeKeyOnSave
             $this->settings->delete('linkrobins-chirp.api-key');
             $this->settings->delete('linkrobins-chirp.api-secret');
             $this->settings->delete('linkrobins-chirp.speaker-slots');
+            $this->settings->delete('linkrobins-chirp.recordings-available');
             return;
         }
 
@@ -55,6 +56,10 @@ class ExchangeKeyOnSave
         $this->settings->set('linkrobins-chirp.api-key', $config['api_key']);
         $this->settings->set('linkrobins-chirp.api-secret', $config['api_secret']);
         $this->settings->set('linkrobins-chirp.speaker-slots', (string) $config['speaker_slots']);
+        // Whether the channel PAYS for recordings; the admin's record-rooms
+        // toggle only takes effect when this is on. Refreshed by re-saving
+        // the key (the dashboard says so next to the add-on toggle).
+        $this->settings->set('linkrobins-chirp.recordings-available', $config['recordings'] ? '1' : '0');
         $this->settings->set('linkrobins-chirp.connected', '1');
     }
 }
