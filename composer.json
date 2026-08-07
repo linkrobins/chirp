@@ -2,6 +2,7 @@
     "name": "linkrobins/flarum-chirp",
     "description": "Chirp — live audio rooms for Flarum. Attach a live audio stage to any discussion: unlimited listeners, speakers on stage, and the thread is the chat.",
     "keywords": [
+        "voice",
         "flarum",
         "audio",
         "voice",
