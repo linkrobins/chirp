@@ -48,6 +48,8 @@ return [
         // Record rooms when the channel's add-on allows it. '1' by default:
         // buying the add-on should Just Work without a second switch hunt.
         ->default('linkrobins-chirp.record-rooms', '1')
+        // Forum-wide default speaker policy for NEW rooms (host can flip live).
+        ->default('linkrobins-chirp.default-speak-policy', 'open')
         ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
         ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 
@@ -75,7 +77,14 @@ return [
         ->delete('/chirp/rooms/{id:\d+}', 'chirp.rooms.end', EndRoomController::class)
         ->post('/chirp/rooms/{id:\d+}/token', 'chirp.rooms.token', JoinTokenController::class)
         ->post('/chirp/recordings', 'chirp.recordings.receive', \LinkRobins\Chirp\Http\ReceiveRecordingController::class)
-        ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class),
+        ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class)
+        // Speaker policies: the host flips the room's policy live; hands are
+        // raised/resolved server-side (the token endpoint enforces), with
+        // data-channel pings making the UI instant.
+        ->post('/chirp/rooms/{id:\d+}/policy', 'chirp.rooms.policy', \LinkRobins\Chirp\Http\SetPolicyController::class)
+        ->post('/chirp/rooms/{id:\d+}/hand', 'chirp.rooms.hand', \LinkRobins\Chirp\Http\RaiseHandController::class)
+        ->post('/chirp/rooms/{id:\d+}/hand/{userId:\d+}', 'chirp.rooms.hand-resolve', \LinkRobins\Chirp\Http\ResolveHandController::class)
+        ->get('/chirp/rooms/{id:\d+}/hands', 'chirp.rooms.hands', \LinkRobins\Chirp\Http\ListHandsController::class),
 
 
     // The delivery receiver is a server-to-server webhook (HMAC-signed by
@@ -87,5 +96,6 @@ return [
     (new Extend\ErrorHandling())
         ->status('chirp_not_configured', 409)
         ->status('chirp_channel_busy', 409)
-        ->status('chirp_slots_full', 409),
+        ->status('chirp_slots_full', 409)
+        ->status('chirp_speak_denied', 403),
 ];

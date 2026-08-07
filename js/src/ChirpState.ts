@@ -36,6 +36,16 @@ export default class ChirpState {
 
   /** The room's server-truth recording flag (recorder bot present). */
   recording = false;
+
+  /** Live speaker policy — data-channel truth once joined; null = use the
+   *  discussion attribute. */
+  speakPolicy: string | null = null;
+
+  /** My raise-hand state in the current room. */
+  handStatus: 'none' | 'pending' | 'approved' | 'declined' = 'none';
+
+  /** Pending hands (host view). */
+  hands: { userId: number; name: string }[] = [];
   /** Title + path of the room you're in, so the dock can label and link it. */
   roomTitle = '';
   roomPath = '';
@@ -157,6 +167,7 @@ export default class ChirpState {
         this.recording = rec;
         touch();
       })
+      .on(RoomEvent.DataReceived, (payload: Uint8Array) => this.onData(payload))
       .on(RoomEvent.Disconnected, () => {
         this.cleanup();
         m.redraw();
@@ -212,5 +223,103 @@ export default class ChirpState {
     this.canPublish = false;
     this.muted = false;
     this.recording = false;
+    this.speakPolicy = null;
+    this.handStatus = 'none';
+    this.hands = [];
+  }
+
+  // ── Speaker policies ───────────────────────────────────────────────────────
+  // REST is the enforcement (the token endpoint checks rows); the data
+  // channel only makes the other clients' UI instant.
+
+  private api(): string {
+    return String(app.forum.attribute('apiUrl'));
+  }
+
+  private myUserId(): number {
+    return Number(app.session.user?.id() || 0);
+  }
+
+  private send(msg: Record<string, unknown>): void {
+    try {
+      this.room?.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(msg)), { reliable: true });
+    } catch {
+      // UX sugar only — REST already landed.
+    }
+  }
+
+  private onData(payload: Uint8Array): void {
+    let msg: any;
+    try {
+      msg = JSON.parse(new TextDecoder().decode(payload));
+    } catch {
+      return;
+    }
+
+    switch (msg.t) {
+      case 'hand':
+        if (!this.hands.some((h) => h.userId === Number(msg.user))) {
+          this.hands.push({ userId: Number(msg.user), name: String(msg.name || '?') });
+        }
+        break;
+      case 'hand-ok':
+        this.hands = this.hands.filter((h) => h.userId !== Number(msg.user));
+        if (Number(msg.user) === this.myUserId() && this.handStatus !== 'approved') {
+          this.handStatus = 'approved';
+          // The mic was just unlocked for us — take it (same path as the
+          // Speak button; reconnects with a publish token).
+          if (this.discussionId && !this.canPublish) void this.join(this.discussionId, true);
+        }
+        break;
+      case 'hand-no':
+        this.hands = this.hands.filter((h) => h.userId !== Number(msg.user));
+        if (Number(msg.user) === this.myUserId()) this.handStatus = 'declined';
+        break;
+      case 'policy':
+        this.speakPolicy = String(msg.v);
+        if (this.discussionId) {
+          app.store.getById('discussions', String(this.discussionId))?.pushAttributes({ chirpSpeakPolicy: this.speakPolicy });
+        }
+        break;
+      default:
+        return;
+    }
+    m.redraw();
+  }
+
+  async raiseHand(discussionId: number): Promise<void> {
+    await app.request({ method: 'POST', url: `${this.api()}/chirp/rooms/${discussionId}/hand` });
+    this.handStatus = 'pending';
+    this.send({ t: 'hand', user: this.myUserId(), name: app.session.user?.displayName() });
+    m.redraw();
+  }
+
+  async resolveHand(discussionId: number, userId: number, approve: boolean): Promise<void> {
+    await app.request({
+      method: 'POST',
+      url: `${this.api()}/chirp/rooms/${discussionId}/hand/${userId}`,
+      body: { action: approve ? 'approve' : 'decline' },
+    });
+    this.hands = this.hands.filter((h) => h.userId !== userId);
+    this.send({ t: approve ? 'hand-ok' : 'hand-no', user: userId });
+    m.redraw();
+  }
+
+  async setPolicy(discussionId: number, policy: string): Promise<void> {
+    await app.request({ method: 'POST', url: `${this.api()}/chirp/rooms/${discussionId}/policy`, body: { policy } });
+    this.speakPolicy = policy;
+    app.store.getById('discussions', String(discussionId))?.pushAttributes({ chirpSpeakPolicy: policy });
+    this.send({ t: 'policy', v: policy });
+    m.redraw();
+  }
+
+  async loadHands(discussionId: number): Promise<void> {
+    try {
+      const res = await app.request<any>({ url: `${this.api()}/chirp/rooms/${discussionId}/hands` });
+      this.hands = res?.hands || [];
+      m.redraw();
+    } catch {
+      // Host UI just starts empty; data messages fill it in.
+    }
   }
 }

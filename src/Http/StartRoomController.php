@@ -76,6 +76,8 @@ class StartRoomController implements RequestHandlerInterface
                 'discussion_id' => $discussion->id,
                 'user_id'       => $actor->id,
                 'created_at'    => Carbon::now(),
+                // Forum-wide default; the host can flip it live from the bar.
+                'speak_policy'  => in_array($p = (string) $this->settings->get('linkrobins-chirp.default-speak-policy', 'open'), ['open', 'hand', 'op'], true) ? $p : 'open',
             ]);
         });
 

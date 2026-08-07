@@ -21,6 +21,15 @@ linkrobins-chirp:
       either way.
     appearance_brand: Default
     appearance_forum: Flarum
+    policy_label: Default speaker policy
+    policy_help: >
+      Who can take the mic in new live rooms. The host can change this live
+      from the room's toolbar. "Raise hand" means listeners request and the
+      host approves; "Author only" limits the stage to the discussion's
+      author (hosts and moderators can always speak).
+    policy_open: Anyone can speak
+    policy_hand: Raise hand to speak
+    policy_op: Author only
     record_label: Record live rooms
     record_help: >
       When your channel has the recordings add-on, every room is recorded and
@@ -52,6 +61,14 @@ linkrobins-chirp:
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
+    raise_hand: Raise hand
+    hand_pending: Hand raised…
+    hand_declined: Not this time
+    approve: Bring up
+    decline: Decline
+    policy_open_short: Anyone
+    policy_hand_short: Raise hand
+    policy_op_short: Author only
     recording_badge: REC
     recording_title: This room is being recorded — the audio will be posted in the discussion.
     recorded_badge: RECORDED
@@ -67,3 +84,4 @@ linkrobins-chirp:
       chirp_not_configured_message: Chirp isn't set up on this forum yet — an admin needs to paste the channel key.
       chirp_channel_busy_message: Your channel already has a live room. End it first, or add another channel for simultaneous rooms.
       chirp_slots_full_message: Every speaker slot is taken right now — you can keep listening, and grab the mic when someone steps down.
+      chirp_speak_denied_message: The host decides who speaks in this room — raise your hand or keep listening.

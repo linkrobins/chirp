@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 use Laminas\Diactoros\Response\JsonResponse;
 use LinkRobins\Chirp\Exception\NotConfiguredException;
 use LinkRobins\Chirp\Exception\SlotsFullException;
+use LinkRobins\Chirp\Exception\SpeakDeniedException;
+use LinkRobins\Chirp\Hand;
 use LinkRobins\Chirp\LiveKit\AccessToken;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Room;
@@ -47,7 +49,8 @@ class JoinTokenController implements RequestHandlerInterface
         $discussion = Discussion::whereVisibleTo($actor)->findOrFail($discussionId);
 
         // No live room → nothing to join.
-        Room::query()->where('discussion_id', $discussion->id)->firstOrFail();
+        /** @var Room $room */
+        $room = Room::query()->where('discussion_id', $discussion->id)->firstOrFail();
 
         $roomName    = Room::nameFor($discussion->id);
         $wantsToTalk = (bool) Arr::get($request->getParsedBody(), 'speak', false);
@@ -55,6 +58,20 @@ class JoinTokenController implements RequestHandlerInterface
 
         if ($wantsToTalk && !$actor->isGuest()
             && ($actor->can('chirpSpeak', $discussion) || $actor->can('chirpStart', $discussion))) {
+            // The room's speaker policy gates the grant BEFORE the slot
+            // count. Hosts (the person who went live) and chirpStart holders
+            // pass every policy — moderation must always be able to talk.
+            $isHost = $room->user_id === $actor->id || $actor->can('chirpStart', $discussion);
+            if (!$isHost) {
+                if ($room->speak_policy === 'op' && $actor->id !== (int) $discussion->user_id) {
+                    throw new SpeakDeniedException();
+                }
+                if ($room->speak_policy === 'hand'
+                    && !Hand::query()->where('room_id', $room->id)->where('user_id', $actor->id)->where('status', 'approved')->exists()) {
+                    throw new SpeakDeniedException();
+                }
+            }
+
             $publishers = $this->rooms->publisherCount($roomName);
             if ($publishers === null || $publishers >= $this->tokens->speakerSlots()) {
                 throw new SlotsFullException();

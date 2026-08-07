@@ -29,6 +29,18 @@ app.initializers.add('linkrobins-chirp', () => {
       type: 'text',
     })
     .registerSetting({
+      setting: 'linkrobins-chirp.default-speak-policy',
+      label: app.translator.trans('linkrobins-chirp.admin.policy_label'),
+      help: app.translator.trans('linkrobins-chirp.admin.policy_help'),
+      type: 'select',
+      options: {
+        open: app.translator.trans('linkrobins-chirp.admin.policy_open'),
+        hand: app.translator.trans('linkrobins-chirp.admin.policy_hand'),
+        op: app.translator.trans('linkrobins-chirp.admin.policy_op'),
+      },
+      default: 'open',
+    })
+    .registerSetting({
       setting: 'linkrobins-chirp.record-rooms',
       label: app.translator.trans('linkrobins-chirp.admin.record_label'),
       help: app.translator.trans('linkrobins-chirp.admin.record_help'),
