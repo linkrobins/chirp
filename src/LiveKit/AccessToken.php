@@ -73,6 +73,10 @@ class AccessToken
                 'room'       => $room,
                 'roomAdmin'  => true,
                 'roomCreate' => true,
+                // ListRooms (the stale-room liveness probe) checks roomList,
+                // not roomAdmin — without it the probe 401s and the reconcile
+                // stays fail-closed busy forever.
+                'roomList'   => true,
             ],
         ], 60);
     }
