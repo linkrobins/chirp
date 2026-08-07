@@ -74,12 +74,13 @@ html.chirp-blend {
 // A ChirpBar variant, so it inherits the accent frame, blend mode, and the
 // list-row static positioning of --inline for free. Static in flow: nothing
 // to reach for, so no sticky/dock.
-.ChirpBar--recording {
+// COMPOUND selector on purpose: .ChirpBar--recording alone is (0,1,0) —
+// equal to .ChirpBar — so the phone fixed-dock rule, which lands LATER in
+// the compiled bundle, would win on source order. .ChirpBar.ChirpBar--recording
+// is (0,2,0) and beats both the base sticky and the phone dock on every
+// viewport regardless of order.
+.ChirpBar.ChirpBar--recording {
   cursor: auto;
-  // Static in flow on EVERY viewport: beats the base sticky AND the phone
-  // fixed-dock rule (two classes outrank one; media queries add no
-  // specificity). The --inline static escape is scoped to list rows, so it
-  // does not cover a standalone bar.
   position: static;
   top: auto;
   left: auto;
