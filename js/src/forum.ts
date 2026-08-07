@@ -98,19 +98,15 @@ app.initializers.add('linkrobins-chirp', () => {
   // flarum/lock idiom); the string-path form assumes a class prototype and
   // crashes the whole initializer ("failed to initialize" toast).
   extend(DiscussionControls, 'moderationControls', function (this: any, items: any, discussion: any) {
-    const canStart = !!discussion?.attribute?.('canChirpStart');
-    const canDesignate = !!discussion?.attribute?.('chirpCanDesignate');
-    if ((!canStart && !canDesignate) || discussion?.attribute?.('chirpIsLive')) return;
+    if (!discussion?.attribute?.('canChirpStart') || discussion.attribute('chirpIsLive')) return;
 
     // Channel already live somewhere else? Say so up front instead of letting
     // them click into a 409 (core renders a generic 'something went wrong'
     // for anything but 422/401/403/404/413/429, so our own copy has to do it).
-    // Only the SHOW is exclusive — designating a voice channel is always
-    // allowed alongside a running live room.
     const liveElsewhere = Number(app.forum.attribute('chirpLiveDiscussionId') || 0);
 
-    const start = (mode: 'live' | 'persistent') => {
-      if (mode === 'live' && liveElsewhere && liveElsewhere !== Number(discussion.id())) {
+    const start = (mode: 'live') => {
+      if (liveElsewhere && liveElsewhere !== Number(discussion.id())) {
         app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.forum.channel_busy_elsewhere'));
         return;
       }
@@ -138,21 +134,11 @@ app.initializers.add('linkrobins-chirp', () => {
         });
     };
 
-    if (canStart) {
-      items.add(
-        'chirp-go-live',
-        m(Button, { icon: 'fas fa-microphone', onclick: () => start('live') }, app.translator.trans('linkrobins-chirp.forum.go_live'))
-      );
-    }
-
-    // The Discord-shaped sibling: a standing place, not a show. ADMIN
-    // infrastructure — designated here or in the admin panel, and it stays
-    // open until an admin removes it. Never recorded.
-    if (canDesignate) {
-      items.add(
-        'chirp-open-voice',
-        m(Button, { icon: 'fas fa-headphones', onclick: () => start('persistent') }, app.translator.trans('linkrobins-chirp.forum.open_voice'))
-      );
-    }
+    // Voice channels are deliberately ABSENT here: designating/removing a
+    // standing channel lives on the admin panel only (Admin → Chirp).
+    items.add(
+      'chirp-go-live',
+      m(Button, { icon: 'fas fa-microphone', onclick: () => start('live') }, app.translator.trans('linkrobins-chirp.forum.go_live'))
+    );
   });
 });
