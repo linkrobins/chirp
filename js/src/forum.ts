@@ -72,6 +72,19 @@ app.initializers.add('linkrobins-chirp', () => {
   document.body.appendChild(dock);
   m.mount(dock, { view: () => m(ChirpDock, { state }) });
 
+  // Full page loads (refresh, non-SPA links like the site chrome's) kill the
+  // JS context and the room with it — rejoin where this tab left off.
+  // ⚠️ app.forum isn't populated while initializers run; poll briefly.
+  const tryResume = (attempts = 0) => {
+    if (attempts > 50) return;
+    if (!(app as any).forum?.attribute?.('apiUrl')) {
+      setTimeout(() => tryResume(attempts + 1), 200);
+      return;
+    }
+    void state.resume();
+  };
+  tryResume();
+
   // The live bar sits ABOVE THE POST STREAM, not in the hero: the hero renders
   // its items (tags, title, badges) in one <ul>, so a bar added there lines up
   // beside the tag chips and looks wedged in. Here it gets its own full-width

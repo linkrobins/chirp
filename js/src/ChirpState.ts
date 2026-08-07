@@ -64,6 +64,58 @@ export default class ChirpState {
     return !!this.room;
   }
 
+  // ── Survive full page loads ────────────────────────────────────────────────
+  // SPA navigation never drops the connection (the dock lives outside the
+  // router), but a refresh or a non-SPA link kills the whole JS context —
+  // nothing survives that. So: remember where we were (per-tab, so a new tab
+  // doesn't hijack the session) and quietly rejoin after boot. A deliberate
+  // Leave and any server-side disconnect (kick, room ended) clear the marker
+  // via cleanup(); a page unload doesn't run cleanup, which is the point.
+
+  private static readonly RESUME_KEY = 'chirp_resume';
+
+  private saveResume(): void {
+    try {
+      sessionStorage.setItem(
+        ChirpState.RESUME_KEY,
+        JSON.stringify({ id: this.discussionId, speak: this.canPublish, title: this.roomTitle, path: this.roomPath })
+      );
+    } catch {
+      // Storage unavailable — resume is best-effort sugar.
+    }
+  }
+
+  private clearResume(): void {
+    try {
+      sessionStorage.removeItem(ChirpState.RESUME_KEY);
+    } catch {}
+  }
+
+  /** Rejoin the room this tab was in before a reload, if any. Silent: a room
+   *  that ended while we were gone just clears the marker. */
+  async resume(): Promise<void> {
+    let marker: any = null;
+    try {
+      marker = JSON.parse(sessionStorage.getItem(ChirpState.RESUME_KEY) || 'null');
+    } catch {}
+    if (!marker?.id || this.connected()) return;
+
+    this.describe(String(marker.title || ''), String(marker.path || ''));
+    try {
+      await this.join(Number(marker.id), !!marker.speak, { silent: true });
+    } catch {
+      if (marker.speak) {
+        // The mic may no longer be ours (policy changed, slots filled) —
+        // the listen seat is still worth restoring.
+        try {
+          await this.join(Number(marker.id), false, { silent: true });
+          return;
+        } catch {}
+      }
+      this.clearResume();
+    }
+  }
+
   inDiscussion(id: number): boolean {
     return this.connected() && this.discussionId === id;
   }
@@ -131,7 +183,7 @@ export default class ChirpState {
     this.roomPath = path;
   }
 
-  async join(discussionId: number, speak: boolean): Promise<void> {
+  async join(discussionId: number, speak: boolean, opts: { silent?: boolean } = {}): Promise<void> {
     if (this.connecting) return;
     this.connecting = true;
     m.redraw();
@@ -141,6 +193,9 @@ export default class ChirpState {
         method: 'POST',
         url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${discussionId}/token`,
         body: { speak },
+        // Resume must not toast "something went wrong" over a room that
+        // simply ended while the page was reloading.
+        errorHandler: opts.silent ? () => {} : undefined,
       });
 
       await this.connect(discussionId, res.endpoint, res.token, !!res.canPublish);
@@ -187,7 +242,15 @@ export default class ChirpState {
           this.canPublish = false;
           this.muted = false;
           if (this.handStatus === 'approved') this.handStatus = 'declined';
+          // A reload must not try to reclaim the mic moderation took away.
+          this.saveResume();
         }
+        touch();
+      })
+      // Browsers block audio after a load without a gesture (the auto-rejoin
+      // path) — resume playback on the first tap/click anywhere.
+      .on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        this.ensureAudioPlayback();
         touch();
       })
       .on(RoomEvent.RecordingStatusChanged, (rec: boolean) => {
@@ -207,6 +270,8 @@ export default class ChirpState {
     this.discussionId = discussionId;
     this.canPublish = canPublish;
     this.muted = false;
+    this.saveResume();
+    this.ensureAudioPlayback();
     m.redraw();
 
     if (canPublish) {
@@ -239,7 +304,18 @@ export default class ChirpState {
     }
   }
 
+  private ensureAudioPlayback(): void {
+    const room = this.room;
+    if (!room || room.canPlaybackAudio !== false) return;
+    const resume = () => {
+      document.removeEventListener('pointerdown', resume);
+      this.room?.startAudio?.().catch(() => {});
+    };
+    document.addEventListener('pointerdown', resume);
+  }
+
   private cleanup(): void {
+    this.clearResume();
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
     this.active = new Set();
