@@ -84,7 +84,7 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
                 },
               },
               recordings.map((r, i) =>
-                m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : `#${r.id}`)
+                m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : `#${r.id}`)
               )
             )
           : null,
