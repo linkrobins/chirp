@@ -79,6 +79,16 @@ export default class ChirpParticipantsModal extends Modal<ChirpParticipantsModal
           : null,
       ].filter(Boolean));
 
+    // Voice channels: joining is speaking, so a stage/listening split is
+    // meaningless — one flat list of everyone in the room.
+    if (voice) {
+      return m('.Modal-body.ChirpRoster', [
+        roster.length
+          ? m('.ChirpRoster-list', { key: 'l-all' }, roster.map(row))
+          : m('p.ChirpRoster-empty', { key: 'e-all' }, t('stage_empty')),
+      ]);
+    }
+
     return m('.Modal-body.ChirpRoster', [
       m('h4.ChirpRoster-heading', { key: 'h-stage' }, t('on_stage', { count: speakers.length })),
       speakers.length

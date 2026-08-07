@@ -75,6 +75,7 @@ linkrobins-chirp:
     confirm_end: End the room for everyone?
     mic_denied: Your browser blocked the microphone — check the permission and try again.
     join_channel: Join
+    in_channel: "{count, plural, one {# in the channel} other {# in the channel}}"
     voice_badge: VOICE
     voice_empty: Nobody here yet — hop in.
     unstage: Remove from stage
