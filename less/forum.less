@@ -413,7 +413,7 @@
 // Pull the right edge out by the difference for even gutters either side.
 .DiscussionListItem .ChirpBar--inline {
   position: static;
-  margin: 0 -10px 12px 0;
+  margin: 0 -10px 18px 0;
   padding: 8px 12px;
   gap: 10px;
   box-shadow: none;
@@ -421,14 +421,15 @@
 }
 
 @media (max-width: 767px) {
-  // Beats the phone rule that docks the bar to the viewport.
+  // Beats the phone rule that docks the bar to the viewport. Inset from the
+  // row's edges so the toolbar isn't flush against the screen sides.
   .DiscussionListItem .ChirpBar--inline {
     position: static;
     left: auto;
     right: auto;
     bottom: auto;
     z-index: auto;
-    margin: 2px 0 10px;
+    margin: 0 6px 14px 6px;
   }
 
   .DiscussionListItem .ChirpBar--inline .ChirpBar-actions {
