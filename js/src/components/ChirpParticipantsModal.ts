@@ -42,6 +42,9 @@ export default class ChirpParticipantsModal extends Modal<ChirpParticipantsModal
     const isHostView =
       !!discussion.attribute('canChirpStart') ||
       Number(app.session.user?.id() || 0) === Number(discussion.attribute('chirpRoomHostId') || 0);
+    // Voice channels: joining is speaking, so moderation is mute/kick — no
+    // stage to remove anyone from.
+    const voice = discussion.attribute('chirpRoomMode') === 'persistent';
 
     const row = (p: Speaker) =>
       m('.ChirpRoster-row', { key: p.key }, [
@@ -58,9 +61,9 @@ export default class ChirpParticipantsModal extends Modal<ChirpParticipantsModal
                 ? m(Button, {
                     className: 'Button Button--icon Button--flat',
                     icon: 'fas fa-microphone-slash',
-                    'aria-label': t('unstage'),
-                    title: String(t('unstage')),
-                    onclick: () => chirp.moderate(id, p.key, 'unstage'),
+                    'aria-label': t(voice ? 'mute' : 'unstage'),
+                    title: String(t(voice ? 'mute' : 'unstage')),
+                    onclick: () => chirp.moderate(id, p.key, voice ? 'mute' : 'unstage'),
                   })
                 : null,
               m(Button, {

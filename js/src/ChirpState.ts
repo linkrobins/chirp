@@ -341,8 +341,9 @@ export default class ChirpState {
     m.redraw();
   }
 
-  /** Host moderation: 'unstage' revokes their mic, 'kick' removes them. */
-  async moderate(discussionId: number, identity: string, action: 'unstage' | 'kick'): Promise<void> {
+  /** Host moderation: 'unstage' revokes their mic, 'mute' soft-mutes their
+   *  tracks server-side (voice channels), 'kick' removes them. */
+  async moderate(discussionId: number, identity: string, action: 'unstage' | 'kick' | 'mute'): Promise<void> {
     await app.request({
       method: 'POST',
       url: `${this.api()}/chirp/rooms/${discussionId}/stage`,

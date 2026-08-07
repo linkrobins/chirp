@@ -66,6 +66,33 @@ class RoomService
     }
 
     /**
+     * Voice-channel moderation: server-side mute of every audio track the
+     * participant is publishing (MutePublishedTrack needs track sids, so we
+     * look them up first). Deliberately NOT a publish revoke — they can
+     * unmute themselves and keep talking like a person, and a repeat
+     * offender gets kicked instead.
+     */
+    public function muteAudio(string $room, string $identity): void
+    {
+        $data = $this->call('ListParticipants', $room, ['room' => $room]);
+        foreach (($data['participants'] ?? []) as $p) {
+            if (($p['identity'] ?? '') !== $identity) {
+                continue;
+            }
+            foreach (($p['tracks'] ?? []) as $track) {
+                if (strtoupper((string) ($track['type'] ?? '')) === 'AUDIO' && !empty($track['sid'])) {
+                    $this->call('MutePublishedTrack', $room, [
+                        'room'      => $room,
+                        'identity'  => $identity,
+                        'track_sid' => $track['sid'],
+                        'muted'     => true,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Is this room actually live on the server? true/false, or null when the
      * API can't answer (caller decides the failure posture).
      */

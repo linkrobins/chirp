@@ -61,8 +61,10 @@ class JoinTokenController implements RequestHandlerInterface
             // The room's speaker policy gates the grant BEFORE the slot
             // count. Hosts (the person who went live) and chirpStart holders
             // pass every policy — moderation must always be able to talk.
+            // VOICE CHANNELS have no policies at all: joining IS speaking
+            // (Discord-shaped) — moderation there is mute/kick, not a gate.
             $isHost = $room->user_id === $actor->id || $actor->can('chirpStart', $discussion);
-            if (!$isHost) {
+            if (!$isHost && $room->mode !== 'persistent') {
                 if ($room->speak_policy === 'op' && $actor->id !== (int) $discussion->user_id) {
                     throw new SpeakDeniedException();
                 }
