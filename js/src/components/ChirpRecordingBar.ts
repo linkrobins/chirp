@@ -57,33 +57,40 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
     const dur = h > 0 ? `${h}:${two(min)}:${two(sec)}` : `${min}:${two(sec)}`;
     const src = `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}/audio`;
 
-    return m('.ChirpBar.ChirpBar--recording', [
-      m('.ChirpBar-live', [
-        m('span.ChirpBadge.ChirpBadge--rec.ChirpBadge--still', t('recorded_badge')),
-        m(
-          '.ChirpWave',
-          { 'aria-hidden': 'true' },
-          Array.from({ length: WAVE_BARS }, () => m('span.ChirpWave-bar'))
-        ),
-      ]),
-      recordings.length > 1
-        ? m(
-            'select.FormControl.ChirpRecordingBar-pick',
-            {
-              value: String(index),
-              onchange: (e: Event) => {
-                this.selected = Number((e.target as HTMLSelectElement).value);
+    // ⚠️ Mithril: a fragment must be ALL-keyed or ALL-unkeyed — one keyed
+    // child among unkeyed siblings throws and takes the whole DiscussionPage
+    // down. Every child is keyed (nulls excluded via filter), and the audio's
+    // key is the recording id so switching SWAPS the element — a playing
+    // <audio> ignores src changes.
+    return m(
+      '.ChirpBar.ChirpBar--recording',
+      [
+        m('.ChirpBar-live', { key: 'live' }, [
+          m('span.ChirpBadge.ChirpBadge--rec.ChirpBadge--still', t('recorded_badge')),
+          m(
+            '.ChirpWave',
+            { 'aria-hidden': 'true' },
+            Array.from({ length: WAVE_BARS }, () => m('span.ChirpWave-bar'))
+          ),
+        ]),
+        recordings.length > 1
+          ? m(
+              'select.FormControl.ChirpRecordingBar-pick',
+              {
+                key: 'pick',
+                value: String(index),
+                onchange: (e: Event) => {
+                  this.selected = Number((e.target as HTMLSelectElement).value);
+                },
               },
-            },
-            recordings.map((r, i) =>
-              m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : `#${r.id}`)
+              recordings.map((r, i) =>
+                m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleDateString() : `#${r.id}`)
+              )
             )
-          )
-        : null,
-      m('span.ChirpBar-count.ChirpRecordingBar-meta', [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
-      // key: switching recordings must swap the element, not just the src —
-      // a playing <audio> ignores src changes until load() is called.
-      m('audio.ChirpRecordingBar-player', { key: String(rec.id), controls: true, preload: 'metadata', src }),
-    ]);
+          : null,
+        m('span.ChirpBar-count.ChirpRecordingBar-meta', { key: 'meta' }, [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
+        m('audio.ChirpRecordingBar-player', { key: 'rec-' + rec.id, controls: true, preload: 'metadata', src }),
+      ].filter(Boolean)
+    );
   }
 }
