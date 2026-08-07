@@ -49,6 +49,26 @@ class RoomService
     }
 
     /**
+     * Is this room actually live on the server? true/false, or null when the
+     * API can't answer (caller decides the failure posture).
+     */
+    public function roomExists(string $room): ?bool
+    {
+        $data = $this->call('ListRooms', $room, ['names' => [$room]]);
+        if ($data === null) {
+            return null;
+        }
+
+        foreach (($data['rooms'] ?? []) as $r) {
+            if (($r['name'] ?? '') === $room) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Pre-create the room so it carries metadata from its very first webhook
      * (rooms auto-created by the first join have none). Idempotent on the
      * LiveKit side; fail-soft here — a failed call means the room simply

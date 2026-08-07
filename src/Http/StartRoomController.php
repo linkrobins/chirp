@@ -58,8 +58,18 @@ class StartRoomController implements RequestHandlerInterface
         $actor->assertCan('chirpStart', $discussion);
 
         $room = Room::query()->getConnection()->transaction(function () use ($discussion, $actor) {
-            if (Room::query()->lockForUpdate()->exists()) {
-                throw new ChannelBusyException();
+            $existing = Room::query()->lockForUpdate()->first();
+            if ($existing) {
+                // A room that ends NATURALLY (everyone leaves, the server's
+                // departure timeout closes it) never passes through EndRoom,
+                // so its row lingers and would wedge the channel with 409s
+                // forever. Ask the server whether that room is really still
+                // live; only a confirmed-dead room clears the row (API
+                // failure stays fail-closed = busy).
+                if ($this->rooms->roomExists(Room::nameFor($existing->discussion_id)) !== false) {
+                    throw new ChannelBusyException();
+                }
+                $existing->delete();
             }
 
             return Room::create([
