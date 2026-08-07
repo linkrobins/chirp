@@ -9,6 +9,8 @@ import type ChirpState from '../ChirpState';
 interface ChirpBarAttrs extends ComponentAttrs {
   discussion: any;
   state: ChirpState;
+  /** Rendered inside a discussion-list row: no sticky/fixed docking. */
+  inline?: boolean;
 }
 
 const WAVE_BARS = 14;
@@ -105,49 +107,57 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     const speakers = state.speakers();
     const listeners = state.listenerCount();
 
-    return m('.ChirpBar', { className: state.anyoneSpeaking ? 'ChirpBar--active' : '' }, [
-      // ── Live badge + waveform ───────────────────────────────────────────
-      m('.ChirpBar-live', [
-        m('span.ChirpBadge', t('live_badge')),
-        m(
-          '.ChirpWave',
-          { 'aria-hidden': 'true' },
-          Array.from({ length: WAVE_BARS }, (_, i) => m('span.ChirpWave-bar', { style: { animationDelay: `${(i % 7) * 0.09}s` } }))
-        ),
-      ]),
+    return m(
+      '.ChirpBar',
+      {
+        className: [state.anyoneSpeaking ? 'ChirpBar--active' : '', this.attrs.inline ? 'ChirpBar--inline' : ''].join(' ').trim(),
+        // In a list row, the controls must not trigger the row's navigation.
+        onclick: this.attrs.inline ? (e: Event) => e.stopPropagation() : undefined,
+      },
+      [
+        // ── Live badge + waveform ───────────────────────────────────────────
+        m('.ChirpBar-live', [
+          m('span.ChirpBadge', t('live_badge')),
+          m(
+            '.ChirpWave',
+            { 'aria-hidden': 'true' },
+            Array.from({ length: WAVE_BARS }, (_, i) => m('span.ChirpWave-bar', { style: { animationDelay: `${(i % 7) * 0.09}s` } }))
+          ),
+        ]),
 
-      // ── The stage ───────────────────────────────────────────────────────
-      speakers.length
-        ? m(
-            '.ChirpBar-stage',
-            speakers.map((s) =>
-              m(
-                Tooltip,
-                { text: s.muted ? t('speaker_muted', { name: s.name }) : s.name },
+        // ── The stage ───────────────────────────────────────────────────────
+        speakers.length
+          ? m(
+              '.ChirpBar-stage',
+              speakers.map((s) =>
                 m(
-                  'span.ChirpSpeaker',
-                  {
-                    className: [s.speaking ? 'is-speaking' : '', s.muted ? 'is-muted' : ''].join(' ').trim(),
-                    style: { background: s.color },
-                  },
-                  s.initial
+                  Tooltip,
+                  { text: s.muted ? t('speaker_muted', { name: s.name }) : s.name },
+                  m(
+                    'span.ChirpSpeaker',
+                    {
+                      className: [s.speaking ? 'is-speaking' : '', s.muted ? 'is-muted' : ''].join(' ').trim(),
+                      style: { background: s.color },
+                    },
+                    s.initial
+                  )
                 )
               )
             )
-          )
-        : m('span.ChirpBar-waiting', t('waiting_for_speakers')),
+          : m('span.ChirpBar-waiting', t('waiting_for_speakers')),
 
-      // ── Audience: the number alone; the icon says what it counts, and the
-      //    full sentence lives in the tooltip. ─────────────────────────────
-      m(
-        Tooltip,
-        { text: t('listeners', { count: listeners }) },
-        m('span.ChirpBar-count', [m('i.icon.fas.fa-headphones', { 'aria-hidden': 'true' }), m('span', String(listeners))])
-      ),
+        // ── Audience: the number alone; the icon says what it counts, and the
+        //    full sentence lives in the tooltip. ─────────────────────────────
+        m(
+          Tooltip,
+          { text: t('listeners', { count: listeners }) },
+          m('span.ChirpBar-count', [m('i.icon.fas.fa-headphones', { 'aria-hidden': 'true' }), m('span', String(listeners))])
+        ),
 
-      // ── Controls ────────────────────────────────────────────────────────
-      m('.ChirpBar-actions', this.controls(id, joined)),
-    ]);
+        // ── Controls ────────────────────────────────────────────────────────
+        m('.ChirpBar-actions', this.controls(id, joined)),
+      ]
+    );
   }
 
   private controls(id: number, joined: boolean): Mithril.Children[] {

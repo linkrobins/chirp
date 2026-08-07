@@ -6,7 +6,6 @@ import m from 'mithril';
 
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
-import ChirpChip from './components/ChirpChip';
 import ChirpDock from './components/ChirpDock';
 
 // One connection for the whole SPA session — you can be in one room at a time,
@@ -24,12 +23,14 @@ app.initializers.add('linkrobins-chirp', () => {
     );
   });
 
-  // The list marker doubles as the join control (see ChirpChip).
-  extend('flarum/forum/components/DiscussionListItem', 'infoItems', function (this: any, items: any) {
+  // The full room toolbar rides in the list row itself — below the title,
+  // tags and last-reply line — so you can listen straight from the index.
+  extend('flarum/forum/components/DiscussionListItem', 'view', function (this: any, vnode: any) {
     const discussion = this.attrs.discussion;
-    if (discussion?.attribute?.('chirpIsLive')) {
-      items.add('chirp-live', m(ChirpChip, { discussion, state }), 100);
-    }
+    if (!discussion?.attribute?.('chirpIsLive')) return;
+    if (!vnode || !Array.isArray(vnode.children)) return;
+
+    vnode.children.push(m(ChirpBar, { discussion, state, inline: true }));
   });
 
   // The dock lives OUTSIDE the SPA root so listening survives navigation.

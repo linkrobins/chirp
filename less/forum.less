@@ -403,3 +403,43 @@
     pointer-events: none;
   }
 }
+
+// ── The toolbar inside a discussion-list row ───────────────────────────────
+// Same component as the discussion page, minus the docking behaviour: it
+// belongs to the row, so it sits in flow beneath the title/tags/meta.
+.DiscussionListItem .ChirpBar--inline {
+  position: static;
+  margin: 2px 0 10px;
+  padding: 8px 12px;
+  gap: 10px;
+  box-shadow: none;
+  cursor: auto;
+}
+
+@media (min-width: 768px) {
+  // Line up with the title rather than the avatar column.
+  .DiscussionListItem .ChirpBar--inline {
+    margin-left: 62px;
+  }
+}
+
+@media (max-width: 767px) {
+  // Beats the phone rule that docks the bar to the viewport.
+  .DiscussionListItem .ChirpBar--inline {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    margin: 2px 0 10px;
+  }
+
+  .DiscussionListItem .ChirpBar--inline .ChirpBar-actions {
+    width: auto;
+    margin-left: auto;
+
+    .Button {
+      flex: 0 0 auto;
+    }
+  }
+}
