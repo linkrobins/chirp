@@ -72,6 +72,10 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
             { 'aria-hidden': 'true' },
             Array.from({ length: WAVE_BARS }, () => m('span.ChirpWave-bar'))
           ),
+          // Duration (and date, when no picker carries it) rides the badge
+          // row — Karl's call.
+          m('span.ChirpBar-count.ChirpRecordingBar-meta',
+            recordings.length > 1 ? [dur] : [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
         ]),
         recordings.length > 1
           ? m(
@@ -91,10 +95,6 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
               )
             )
           : null,
-        // With the picker present, IT carries the date — meta keeps duration
-        // only, so nothing renders twice.
-        m('span.ChirpBar-count.ChirpRecordingBar-meta', { key: 'meta' },
-          recordings.length > 1 ? [dur] : [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
         m('audio.ChirpRecordingBar-player', { key: 'rec-' + rec.id, controls: true, preload: 'metadata', src }),
       ].filter(Boolean)
     );
