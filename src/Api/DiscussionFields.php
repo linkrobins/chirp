@@ -20,8 +20,8 @@ use LinkRobins\Chirp\Room;
  */
 class DiscussionFields
 {
-    /** @var int|false|null null = not fetched yet; false = no live room */
-    private int|false|null $liveDiscussionId = null;
+    /** @var Room|false|null null = not fetched yet; false = no live room */
+    private Room|false|null $liveRoom = null;
 
     /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
     private ?array $recordings = null;
@@ -63,6 +63,58 @@ class DiscussionFields
                         return false;
                     }
                 }),
+            // Live-room speaker policy trio — null/false everywhere except
+            // THE live discussion. chirpSpeakEligible is the policy-aware
+            // "may this actor pursue the mic right now" (in 'hand' mode it
+            // means "may raise a hand"); the token endpoint re-enforces.
+            Schema\Str::make('chirpSpeakPolicy')
+                ->nullable()
+                ->get(function ($discussion) {
+                    try {
+                        $room = $this->liveRoom();
+
+                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (string) $room->speak_policy : null;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }),
+
+            Schema\Integer::make('chirpRoomHostId')
+                ->nullable()
+                ->get(function ($discussion) {
+                    try {
+                        $room = $this->liveRoom();
+
+                        return $room && (int) $room->discussion_id === (int) $discussion->id ? (int) $room->user_id : null;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }),
+
+            Schema\Boolean::make('chirpSpeakEligible')
+                ->get(function ($discussion, $context) {
+                    try {
+                        $room = $this->liveRoom();
+                        if (!$room || (int) $room->discussion_id !== (int) $discussion->id) {
+                            return false;
+                        }
+                        $actor = $context->getActor();
+                        if ($actor->isGuest()) {
+                            return false;
+                        }
+                        if ($room->user_id === $actor->id || $actor->can('chirpStart', $discussion)) {
+                            return true;
+                        }
+                        if ($room->speak_policy === 'op') {
+                            return $actor->id === (int) $discussion->user_id;
+                        }
+
+                        return $actor->can('chirpSpeak', $discussion);
+                    } catch (\Throwable) {
+                        return false;
+                    }
+                }),
+
             Schema\Arr::make('chirpRecordings')
                 ->get(function ($discussion) {
                     try {
@@ -103,10 +155,18 @@ class DiscussionFields
 
     private function liveId(): int|false
     {
-        if ($this->liveDiscussionId === null) {
-            $this->liveDiscussionId = (int) (Room::query()->value('discussion_id') ?? 0) ?: false;
+        $room = $this->liveRoom();
+
+        return $room ? (int) $room->discussion_id : false;
+    }
+
+    /** The 0-or-1 live room row, fetched once per request (same memo rule). */
+    private function liveRoom(): Room|false
+    {
+        if ($this->liveRoom === null) {
+            $this->liveRoom = Room::query()->first() ?: false;
         }
 
-        return $this->liveDiscussionId;
+        return $this->liveRoom;
     }
 }

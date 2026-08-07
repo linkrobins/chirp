@@ -32,6 +32,14 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.oncreate(vnode);
     this.tracker.start();
+
+    // Host in hand mode: hydrate hands raised before this bar mounted (the
+    // data channel only covers hands raised while we're watching).
+    const { discussion, state } = this.attrs;
+    const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
+    if (policy === 'hand' && discussion.attribute('canChirpStart')) {
+      void state.loadHands(Number(discussion.id()));
+    }
   }
 
   onupdate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
@@ -142,28 +150,81 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
             state.muted ? t('unmute') : t('mute')
           )
         );
-      } else if (discussion.attribute('canChirpSpeak')) {
-        actions.push(
-          m(
-            Button,
-            {
-              className: 'Button Button--size-sm ChirpBar-btn',
-              icon: 'fas fa-microphone',
-              loading: state.connecting,
-              onclick: () => {
-                state.describe(String(discussion.title()), app.route.discussion(discussion));
-                state.join(id, true);
+      } else if (discussion.attribute('chirpSpeakEligible')) {
+        const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
+        const hostId = Number(discussion.attribute('chirpRoomHostId') || 0);
+        const isHost = !!discussion.attribute('canChirpStart') || Number(app.session.user?.id() || 0) === hostId;
+
+        if (policy === 'hand' && !isHost && state.handStatus !== 'approved') {
+          // Raise-hand flow: the mic unlocks when the host approves.
+          actions.push(
+            m(
+              Button,
+              {
+                className: 'Button Button--size-sm ChirpBar-btn',
+                icon: 'fas fa-hand',
+                disabled: state.handStatus === 'pending',
+                title: state.handStatus === 'declined' ? String(t('hand_declined')) : undefined,
+                onclick: () => state.raiseHand(id),
               },
-            },
-            t('take_mic')
-          )
-        );
+              state.handStatus === 'pending' ? t('hand_pending') : t('raise_hand')
+            )
+          );
+        } else {
+          actions.push(
+            m(
+              Button,
+              {
+                className: 'Button Button--size-sm ChirpBar-btn',
+                icon: 'fas fa-microphone',
+                loading: state.connecting,
+                onclick: () => {
+                  state.describe(String(discussion.title()), app.route.discussion(discussion));
+                  state.join(id, true);
+                },
+              },
+              t('take_mic')
+            )
+          );
+        }
       }
 
       actions.push(m(Button, { className: 'Button Button--size-sm Button--flat', onclick: () => state.leave() }, t('leave')));
     }
 
     if (discussion.attribute('canChirpStart')) {
+      const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
+
+      // Pending hands — approve brings them straight up on stage.
+      if (policy === 'hand') {
+        state.hands.forEach((h) => {
+          actions.push(
+            m('span.ChirpHand', { key: undefined }, [
+              m('span.ChirpHand-name', '\u270B ' + h.name),
+              m(Button, { className: 'Button Button--size-sm ChirpHand-yes', icon: 'fas fa-check', title: String(t('approve')), onclick: () => state.resolveHand(id, h.userId, true) }),
+              m(Button, { className: 'Button Button--size-sm ChirpHand-no', icon: 'fas fa-xmark', title: String(t('decline')), onclick: () => state.resolveHand(id, h.userId, false) }),
+            ])
+          );
+        });
+      }
+
+      // The live policy switcher — the bar-switcher model (admin sets the
+      // default, the host opens up or locks down mid-show).
+      actions.push(
+        m(
+          'span.ChirpRecordingBar-pickwrap',
+          m(
+            'select.ChirpRecordingBar-pick.ChirpBar-policy',
+            { value: policy, onchange: (e: Event) => state.setPolicy(id, (e.target as HTMLSelectElement).value) },
+            [
+              m('option', { value: 'open' }, t('policy_open_short')),
+              m('option', { value: 'hand' }, t('policy_hand_short')),
+              m('option', { value: 'op' }, t('policy_op_short')),
+            ]
+          )
+        )
+      );
+
       actions.push(
         m(
           Button,

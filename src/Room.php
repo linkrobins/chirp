@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $discussion_id
  * @property int|null $user_id
  * @property \Carbon\Carbon $created_at
+ * @property string $speak_policy
  * @property-read Discussion $discussion
  * @property-read User|null $user
  */
@@ -24,7 +25,7 @@ class Room extends AbstractModel
 {
     protected $table = 'chirp_rooms';
 
-    protected $fillable = ['discussion_id', 'user_id', 'created_at'];
+    protected $fillable = ['discussion_id', 'user_id', 'created_at', 'speak_policy'];
 
     protected $casts = ['created_at' => 'datetime'];
 
