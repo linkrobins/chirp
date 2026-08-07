@@ -15,12 +15,12 @@ linkrobins-chirp:
     service_url_help: Only change this if support asks you to.
     appearance_label: Accent colors
     appearance_help: >
-      Chirp brand keeps the live bar's own coral-and-teal accents. Match forum
-      theme adopts your forum's Appearance colors (primary and secondary
-      color) instead, so the bar blends into your site. The green "mic is
-      live" cues stay the same either way.
-    appearance_brand: Chirp brand
-    appearance_forum: Match forum theme
+      Default keeps Chirp's own coral-and-teal accents. Flarum adopts your
+      forum's Appearance colors (primary and secondary color) instead, so the
+      bars blend into your site. The green "mic is live" cues stay the same
+      either way.
+    appearance_brand: Default
+    appearance_forum: Flarum
     record_label: Record live rooms
     record_help: >
       When your channel has the recordings add-on, every room is recorded and
