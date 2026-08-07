@@ -176,17 +176,32 @@
   color: #e8442e;
 }
 
-// Phones: let the strip breathe over two rows instead of squashing.
+// Phones: row one is the room at a glance, row two is a full-width control
+// strip. (Right-aligning the wrapped buttons left a dead gap on the left.)
 @media (max-width: 767px) {
   .ChirpBar {
-    gap: 10px;
+    gap: 10px 12px;
     padding: 12px 14px;
+  }
+
+  // The waveform already says "waiting"; the sentence just eats a row.
+  .ChirpBar-waiting {
+    display: none;
+  }
+
+  .ChirpBar-count {
+    margin-left: auto;
   }
 
   .ChirpBar-actions {
     margin-left: 0;
     width: 100%;
-    justify-content: flex-end;
+    gap: 8px;
+
+    .Button {
+      flex: 1 1 0;
+      justify-content: center;
+    }
   }
 }
 
