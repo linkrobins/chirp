@@ -14,6 +14,7 @@ export interface Speaker {
   speaking: boolean;
   muted: boolean;
   isLocal: boolean;
+  onStage: boolean;
 }
 
 const PALETTE = ['#1ec3d6', '#b28cf5', '#e8b339', '#34c98e', '#f06a6a', '#5a9ded', '#e87fc0'];
@@ -55,6 +56,8 @@ export default class ChirpState {
 
   /** Identities currently talking, from LiveKit's speaker detection. */
   private active = new Set<string>();
+  /** Who talked last — keeps the bar's featured avatar steady between turns. */
+  private lastActive: string | null = null;
   private audioEls: HTMLMediaElement[] = [];
 
   connected(): boolean {
@@ -70,15 +73,14 @@ export default class ChirpState {
     return this.active.size > 0;
   }
 
-  /** Everyone who can publish audio — the stage. */
-  speakers(): Speaker[] {
+  /** The whole room: stage first, then the audience. Hidden participants
+   *  (the recorder bot) never appear in the client roster at all. */
+  roster(): Speaker[] {
     if (!this.room) return [];
 
     const out: Speaker[] = [];
     const add = (p: any, isLocal: boolean) => {
-      const publishes = isLocal ? this.canPublish : !!(p.permissions?.canPublish ?? (p.audioTrackPublications?.size ?? 0) > 0);
-      if (!publishes) return;
-
+      const onStage = isLocal ? this.canPublish : !!(p.permissions?.canPublish ?? (p.audioTrackPublications?.size ?? 0) > 0);
       const key = String(p.identity ?? (isLocal ? 'me' : Math.random()));
       const name = String(p.name || p.identity || 'Speaker');
       const micOff = isLocal ? this.muted : ![...(p.audioTrackPublications?.values?.() ?? [])].some((pub: any) => !pub.isMuted);
@@ -89,15 +91,29 @@ export default class ChirpState {
         initial: (name.replace(/^[ug]\d+$/i, 'S').trim()[0] || 'S').toUpperCase(),
         color: colorFor(key),
         speaking: this.active.has(key),
-        muted: micOff,
+        muted: onStage ? micOff : true,
         isLocal,
+        onStage,
       });
     };
 
     if (this.room.localParticipant) add(this.room.localParticipant, true);
     for (const p of this.room.remoteParticipants?.values?.() ?? []) add(p, false);
 
-    return out;
+    return out.sort((a, b) => Number(b.onStage) - Number(a.onStage));
+  }
+
+  /** Everyone who can publish audio — the stage. */
+  speakers(): Speaker[] {
+    return this.roster().filter((p) => p.onStage);
+  }
+
+  /** The one avatar the bar shows: whoever is talking, else whoever talked
+   *  last, else yourself if you're on stage, else the first speaker. */
+  featuredSpeaker(): Speaker | null {
+    const s = this.speakers();
+    if (!s.length) return null;
+    return s.find((p) => p.speaking) || s.find((p) => p.key === this.lastActive) || s.find((p) => p.isLocal) || s[0];
   }
 
   /** Everyone else in the room — the audience (including yourself if listening).
@@ -152,6 +168,7 @@ export default class ChirpState {
       })
       .on(RoomEvent.ActiveSpeakersChanged, (speakers: any[]) => {
         this.active = new Set(speakers.map((p) => String(p.identity)));
+        if (speakers.length) this.lastActive = String(speakers[0].identity);
         touch();
       })
       .on(RoomEvent.ParticipantConnected, touch)
@@ -226,6 +243,7 @@ export default class ChirpState {
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
     this.active = new Set();
+    this.lastActive = null;
     this.room = null;
     this.discussionId = null;
     this.roomTitle = '';

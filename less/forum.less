@@ -638,16 +638,80 @@ html.chirp-blend {
   }
 }
 
-// Host stage moderation: moderatable avatars advertise it; the action chip
-// reuses the raised-hand chip shell.
-.ChirpSpeaker.is-moderatable {
+// ── Participants modal (the bar's ⋯ button) ─────────────────────────────────
+// The bar shows only whoever is talking; the full roster — and the host's
+// moderation — lives in a native modal.
+
+.ChirpBar-stage .ChirpSpeaker {
   cursor: pointer;
 }
 
-.ChirpModChip .Button .icon {
+.ChirpBar-morecount {
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-weight: 700;
   color: var(--muted-color);
 }
 
-.ChirpModChip .ChirpHand-no .icon {
-  color: var(--chirp-hot);
+.ChirpBar-roster {
+  color: var(--muted-color);
+}
+
+.ChirpRoster-heading {
+  margin: 0 0 8px;
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-color);
+
+  & + & ,
+  .ChirpRoster-list + & {
+    margin-top: 16px;
+  }
+}
+
+.ChirpRoster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.ChirpRoster-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ChirpRoster-you {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--muted-color);
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+}
+
+.ChirpRoster-muted {
+  color: var(--muted-color);
+}
+
+.ChirpRoster-empty {
+  color: var(--muted-color);
+  font-style: italic;
+  margin: 0;
+}
+
+.ChirpRoster-actions {
+  display: inline-flex;
+  gap: 2px;
+
+  .Button .icon {
+    color: var(--muted-color);
+  }
+
+  .ChirpRoster-kick .icon {
+    color: var(--chirp-hot);
+  }
 }

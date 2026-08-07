@@ -70,6 +70,12 @@ linkrobins-chirp:
     unstage: Remove from stage
     kick: Remove from room
     confirm_kick: Remove this person from the room entirely? They can rejoin as a listener.
+    participants: Participants
+    on_stage: "{count, plural, one {On stage — # speaker} other {On stage — # speakers}}"
+    listening_heading: "{count, plural, one {Listening — # person} other {Listening — # people}}"
+    stage_empty: Nobody on stage right now.
+    you: (you)
+    roster_gone: You left the room.
     settings:
       notify_room_started_label: Someone goes live in a discussion I follow
     notifications:
