@@ -280,7 +280,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               });
             },
           },
-          t('end_room')
+          t(mode === 'persistent' ? 'close_channel' : 'end_room')
         )
       );
     }
