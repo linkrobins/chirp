@@ -97,15 +97,60 @@ html.chirp-blend {
   height: 36px;
 }
 
+// The recording picker must READ as a control: iOS renders bare selects as
+// plain text with zero affordance, so appearance goes off and the pill +
+// chevron are ours.
+.ChirpRecordingBar-pickwrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  &::after {
+    content: '▾';
+    position: absolute;
+    right: 11px;
+    pointer-events: none;
+    color: var(--chirp-cool);
+    font-size: calc(11px * var(--lr-ui-scale, 1));
+    line-height: 1;
+  }
+}
+
 .ChirpRecordingBar-pick {
+  appearance: none;
+  -webkit-appearance: none;
   width: auto;
-  max-width: 130px;
-  height: 30px;
-  padding: 2px 8px;
+  max-width: 190px;
+  height: 32px;
+  padding: 2px 28px 2px 12px;
   font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-weight: 600;
+  color: var(--body-color);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--chirp-cool) 35%, transparent);
+  background: color-mix(in srgb, var(--chirp-cool) 10%, transparent);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--chirp-cool) 65%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--chirp-cool) 15%, transparent);
+  }
 }
 
 @media (max-width: 767px) {
+  // The picker gets its own full row — a full-width pill is unmistakably a
+  // button, and the tap target grows to match.
+  .ChirpRecordingBar-pickwrap {
+    flex-basis: 100%;
+  }
+
+  .ChirpRecordingBar-pick {
+    width: 100%;
+    max-width: none;
+    height: 36px;
+  }
+
   .ChirpRecordingBar-player {
     flex-basis: 100%;
   }
