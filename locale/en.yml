@@ -21,11 +21,11 @@ linkrobins-chirp:
 
   forum:
     go_live: Go live
-    end_room: End room
+    end_room: End
     live_badge: LIVE
     join_listen: Listen in
     leave: Leave
-    take_mic: Take the mic
+    take_mic: Speak
     leave_mic: Leave the stage
     mute: Mute
     unmute: Unmute

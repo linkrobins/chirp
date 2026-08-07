@@ -4,20 +4,21 @@
 .ChirpBadge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
+  gap: 4px;
+  padding: 1px 7px;
   border-radius: 999px;
   background: #e8442e;
   color: #fff;
-  font-size: calc(11px * var(--lr-ui-scale, 1));
-  font-weight: 800;
-  letter-spacing: 0.6px;
+  font-size: calc(10px * var(--lr-ui-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.5;
   flex-shrink: 0;
 
   &::before {
     content: '';
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #fff;
     animation: chirp-pulse 1.6s ease-in-out infinite;
@@ -44,6 +45,13 @@
   border: 1px solid fade(#1ec3d6, 28%);
   box-shadow: 0 1px 2px fade(#000, 6%);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+  // Rides along as you read: the room controls should never be a scroll-up
+  // away. Offsets clear Flarum's affixed header (52px, tablet-up only) and
+  // any pinned site chrome (--lr-chrome-h, 0 when there is none).
+  position: sticky;
+  top: calc(var(--lr-chrome-h, 0px) + 8px);
+  z-index: 3;
 
   &.ChirpBar--active {
     border-color: fade(#34c98e, 55%);
@@ -88,6 +96,12 @@
 @keyframes chirp-wave {
   from { height: 4px; }
   to { height: 20px; }
+}
+
+@media (min-width: 768px) {
+  .ChirpBar {
+    top: calc(var(--lr-chrome-h, 0px) + 60px);
+  }
 }
 
 // The stage.
@@ -145,19 +159,16 @@
 .ChirpBar-count {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: var(--muted-color);
   font-size: calc(13px * var(--lr-ui-scale, 1));
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
-}
 
-.ChirpBar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #34c98e;
-  flex-shrink: 0;
+  .icon {
+    font-size: calc(12px * var(--lr-ui-scale, 1));
+    opacity: 0.75;
+  }
 }
 
 .ChirpBar-actions {
@@ -165,14 +176,25 @@
   align-items: center;
   gap: 6px;
   margin-left: auto;
+}
 
-  .Button {
-    border-radius: 8px;
+// Every control shares one background so the strip reads as a single unit;
+// colour is reserved for meaning (muted mic, ending the room).
+.ChirpBar-btn {
+  border-radius: 8px;
+
+  .icon {
+    opacity: 0.85;
+  }
+
+  &.is-muted,
+  &.is-muted .Button-label {
+    color: #e8442e;
   }
 }
 
-.ChirpBar-end .Button-label,
-.ChirpBar-end {
+.ChirpBar-end,
+.ChirpBar-end .Button-label {
   color: #e8442e;
 }
 

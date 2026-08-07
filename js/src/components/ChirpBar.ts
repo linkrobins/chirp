@@ -2,6 +2,7 @@ import app from 'flarum/forum/app';
 import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import Tooltip from 'flarum/common/components/Tooltip';
+import icon from 'flarum/common/helpers/icon';
 import type Mithril from 'mithril';
 import m from 'mithril';
 import type ChirpState from '../ChirpState';
@@ -79,7 +80,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         m(
           Button,
           {
-            className: 'Button Button--primary Button--size-sm ChirpBar-join',
+            className: 'Button Button--size-sm ChirpBar-btn',
             icon: 'fas fa-headphones',
             loading: state.connecting,
             onclick: () => state.join(id, false),
@@ -93,7 +94,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           m(
             Button,
             {
-              className: `Button Button--size-sm ${state.muted ? 'Button--danger' : ''}`,
+              className: `Button Button--size-sm ChirpBar-btn ${state.muted ? 'is-muted' : ''}`,
               icon: state.muted ? 'fas fa-microphone-slash' : 'fas fa-microphone',
               onclick: () => state.setMuted(!state.muted),
             },
@@ -105,8 +106,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           m(
             Button,
             {
-              className: 'Button Button--size-sm',
-              icon: 'fas fa-hand',
+              className: 'Button Button--size-sm ChirpBar-btn',
+              icon: 'fas fa-microphone',
               loading: state.connecting,
               onclick: () => state.join(id, true),
             },
@@ -123,7 +124,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         m(
           Button,
           {
-            className: 'Button Button--size-sm Button--flat ChirpBar-end',
+            className: 'Button Button--size-sm ChirpBar-btn ChirpBar-end',
+            icon: 'fas fa-circle-stop',
             onclick: () => {
               if (!confirm(String(t('confirm_end')))) return;
               app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {
