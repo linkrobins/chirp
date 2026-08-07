@@ -118,6 +118,25 @@ class RecordingsTest extends TestCase
     }
 
     #[Test]
+    public function deleting_needs_the_permission_and_confirms_server_side_nothing(): void
+    {
+        $this->configure();
+
+        // A normal member lacks chirpDeleteRecording (moderators by default).
+        $denied = $this->send($this->request('DELETE', '/api/chirp/recordings/5', ['authenticatedAs' => 2]));
+        $this->assertEquals(403, $denied->getStatusCode());
+
+        // Admin passes; the row is gone for good.
+        $ok = $this->send($this->request('DELETE', '/api/chirp/recordings/5', ['authenticatedAs' => 1]));
+        $this->assertEquals(204, $ok->getStatusCode());
+        $this->assertNull(\LinkRobins\Chirp\Recording::query()->find(5));
+
+        // Unknown id is a clean 404.
+        $gone = $this->send($this->request('DELETE', '/api/chirp/recordings/5', ['authenticatedAs' => 1]));
+        $this->assertEquals(404, $gone->getStatusCode());
+    }
+
+    #[Test]
     public function streaming_missing_file_404s_but_visibility_gate_runs_first(): void
     {
         $this->configure();

@@ -72,5 +72,13 @@ app.initializers.add('linkrobins-chirp', () => {
         permission: 'discussion.chirpSpeak',
       },
       'reply'
+    )
+    .registerPermission(
+      {
+        icon: 'fas fa-trash-can',
+        label: app.translator.trans('linkrobins-chirp.admin.permissions.delete_recording_label'),
+        permission: 'discussion.chirpDeleteRecording',
+      },
+      'moderate'
     );
 });

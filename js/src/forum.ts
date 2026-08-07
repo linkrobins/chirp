@@ -78,7 +78,7 @@ app.initializers.add('linkrobins-chirp', () => {
 
     const recordings = discussion.attribute?.('chirpRecordings') || [];
     if (recordings.length) {
-      vnode.children.unshift(m(ChirpRecordingBar, { recordings }));
+      vnode.children.unshift(m(ChirpRecordingBar, { recordings, discussion }));
     }
   });
 
