@@ -23,7 +23,7 @@ linkrobins-chirp:
     go_live: Go live
     end_room: End
     live_badge: LIVE
-    join_listen: Listen in
+    join_listen: Listen
     leave: Leave
     take_mic: Speak
     leave_mic: Leave the stage
