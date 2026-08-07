@@ -76,7 +76,11 @@ html.chirp-blend {
 
   audio {
     display: block;
-    width: min(420px, 100%);
+    // NOT width: min(420px, 100%) — less.php eats CSS min()/max() as ITS
+    // OWN functions and throws "incompatible types" on mixed units, which
+    // kills the whole forum stylesheet (sitewide 500).
+    width: 420px;
+    max-width: 100%;
     height: 36px;
   }
 }
