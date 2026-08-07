@@ -44,7 +44,7 @@ class ModerateStageController implements RequestHandlerInterface
 
         $identity = (string) Arr::get($request->getParsedBody(), 'identity');
         $action   = (string) Arr::get($request->getParsedBody(), 'action');
-        if (!preg_match('/^u\d+$/', $identity) || !in_array($action, ['unstage', 'kick'], true)) {
+        if (!preg_match('/^u\d+$/', $identity) || !in_array($action, ['unstage', 'kick', 'mute'], true)) {
             return new JsonResponse(['error' => 'bad request'], 422);
         }
         if ($identity === 'u' . $actor->id) {
@@ -54,6 +54,9 @@ class ModerateStageController implements RequestHandlerInterface
         $roomName = Room::nameFor($discussionId);
         if ($action === 'kick') {
             $this->rooms->removeParticipant($roomName, $identity);
+        } elseif ($action === 'mute') {
+            // Voice channels: a soft hand — server-side track mute.
+            $this->rooms->muteAudio($roomName, $identity);
         } else {
             $this->rooms->revokePublish($roomName, $identity);
         }

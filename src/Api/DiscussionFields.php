@@ -117,7 +117,9 @@ class DiscussionFields
                         if ($room->user_id === $actor->id || $actor->can('chirpStart', $discussion)) {
                             return true;
                         }
-                        if ($room->speak_policy === 'op') {
+                        // Voice channels have no speaker policies — joining
+                        // is speaking for anyone holding chirpSpeak.
+                        if ($room->mode !== 'persistent' && $room->speak_policy === 'op') {
                             return $actor->id === (int) $discussion->user_id;
                         }
 

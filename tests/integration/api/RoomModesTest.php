@@ -141,6 +141,41 @@ class RoomModesTest extends TestCase
     }
 
     #[Test]
+    public function voice_channels_ignore_speaker_policies(): void
+    {
+        $this->configure();
+        // Even with the most restrictive policy stored, a voice channel lets
+        // any chirpSpeak holder pursue the mic: the policy 403 must NOT
+        // fire — the harness's unreachable LiveKit then fail-closes the
+        // SLOT check as 409, which is the "policy passed" signature.
+        $this->database()->table('chirp_rooms')->insert(['id' => 1, 'discussion_id' => 2, 'user_id' => 1, 'created_at' => Carbon::now(), 'speak_policy' => 'op', 'mode' => 'persistent']);
+
+        $response = $this->send($this->request('POST', '/api/chirp/rooms/2/token', ['authenticatedAs' => 3, 'json' => ['speak' => true]]));
+        $this->assertEquals(409, $response->getStatusCode());
+
+        // The same actor against the same policy on a LIVE room is denied
+        // by the policy itself (403) — the channel really is the difference.
+        $this->database()->table('chirp_rooms')->where('id', 1)->update(['mode' => 'live']);
+        $denied = $this->send($this->request('POST', '/api/chirp/rooms/2/token', ['authenticatedAs' => 3, 'json' => ['speak' => true]]));
+        $this->assertEquals(403, $denied->getStatusCode());
+    }
+
+    #[Test]
+    public function mute_is_an_accepted_moderation_action(): void
+    {
+        $this->configure();
+        $this->database()->table('chirp_rooms')->insert(['id' => 1, 'discussion_id' => 2, 'user_id' => 1, 'created_at' => Carbon::now(), 'speak_policy' => 'open', 'mode' => 'persistent']);
+
+        // Fail-soft LiveKit: the action is accepted even when the room API
+        // is unreachable.
+        $ok = $this->send($this->request('POST', '/api/chirp/rooms/2/stage', ['authenticatedAs' => 1, 'json' => ['identity' => 'u3', 'action' => 'mute']]));
+        $this->assertEquals(200, $ok->getStatusCode());
+
+        $self = $this->send($this->request('POST', '/api/chirp/rooms/2/stage', ['authenticatedAs' => 1, 'json' => ['identity' => 'u1', 'action' => 'mute']]));
+        $this->assertEquals(422, $self->getStatusCode());
+    }
+
+    #[Test]
     public function stage_moderation_is_host_only_and_validates(): void
     {
         $this->configure();

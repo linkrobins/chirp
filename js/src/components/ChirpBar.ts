@@ -35,10 +35,11 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     this.tracker.start();
 
     // Host in hand mode: hydrate hands raised before this bar mounted (the
-    // data channel only covers hands raised while we're watching).
+    // data channel only covers hands raised while we're watching). Voice
+    // channels have no policies, so no hands to hydrate.
     const { discussion, state } = this.attrs;
     const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
-    if (policy === 'hand' && discussion.attribute('canChirpStart')) {
+    if (discussion.attribute('chirpRoomMode') !== 'persistent' && policy === 'hand' && discussion.attribute('canChirpStart')) {
       void state.loadHands(Number(discussion.id()));
     }
   }
@@ -141,16 +142,19 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
     const actions: Mithril.Children[] = [];
 
     if (!joined) {
+      // Voice channels are Discord-shaped: joining IS speaking (guests and
+      // members without the speak permission still get the listen seat).
+      const speakOnJoin = mode === 'persistent' && !!discussion.attribute('chirpSpeakEligible');
       actions.push(
         m(
           Button,
           {
             className: 'Button Button--size-sm ChirpBar-btn',
-            icon: 'fas fa-headphones',
+            icon: mode === 'persistent' ? 'fas fa-microphone' : 'fas fa-headphones',
             loading: state.connecting,
             onclick: () => {
               state.describe(String(discussion.title()), app.route.discussion(discussion));
-              state.join(id, false);
+              state.join(id, speakOnJoin);
             },
           },
           t(mode === 'persistent' ? 'join_channel' : 'join_listen')
@@ -170,7 +174,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           )
         );
       } else if (discussion.attribute('chirpSpeakEligible')) {
-        const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
+        // Voice channels have no speaker policies — the mic is a Speak away.
+        const policy = mode === 'persistent' ? 'open' : state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
         const hostId = Number(discussion.attribute('chirpRoomHostId') || 0);
         const isHost = !!discussion.attribute('canChirpStart') || Number(app.session.user?.id() || 0) === hostId;
 
@@ -211,7 +216,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       actions.push(m(Button, { className: 'Button Button--size-sm Button--flat', onclick: () => state.leave() }, t('leave')));
     }
 
-    if (discussion.attribute('canChirpStart')) {
+    // Hands + the policy switcher are SHOW furniture — voice channels have
+    // neither (moderation there = mute/kick via the participants modal).
+    if (mode !== 'persistent' && discussion.attribute('canChirpStart')) {
       const policy = state.speakPolicy || (discussion.attribute('chirpSpeakPolicy') as string) || 'open';
 
       // Pending hands — approve brings them straight up on stage.
