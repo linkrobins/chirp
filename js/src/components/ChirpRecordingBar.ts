@@ -75,20 +75,26 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[] }> 
         ]),
         recordings.length > 1
           ? m(
-              'select.FormControl.ChirpRecordingBar-pick',
-              {
-                key: 'pick',
-                value: String(index),
-                onchange: (e: Event) => {
-                  this.selected = Number((e.target as HTMLSelectElement).value);
+              'span.ChirpRecordingBar-pickwrap',
+              { key: 'pick' },
+              m(
+                'select.ChirpRecordingBar-pick',
+                {
+                  value: String(index),
+                  onchange: (e: Event) => {
+                    this.selected = Number((e.target as HTMLSelectElement).value);
+                  },
                 },
-              },
-              recordings.map((r, i) =>
-                m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : `#${r.id}`)
+                recordings.map((r, i) =>
+                  m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : `#${r.id}`)
+                )
               )
             )
           : null,
-        m('span.ChirpBar-count.ChirpRecordingBar-meta', { key: 'meta' }, [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
+        // With the picker present, IT carries the date — meta keeps duration
+        // only, so nothing renders twice.
+        m('span.ChirpBar-count.ChirpRecordingBar-meta', { key: 'meta' },
+          recordings.length > 1 ? [dur] : [dur, rec.recordedAt ? ' · ' + new Date(rec.recordedAt).toLocaleDateString() : '']),
         m('audio.ChirpRecordingBar-player', { key: 'rec-' + rec.id, controls: true, preload: 'metadata', src }),
       ].filter(Boolean)
     );
