@@ -86,7 +86,11 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[]; di
                   },
                 },
                 recordings.map((r, i) =>
-                  m('option', { value: String(i) }, r.recordedAt ? new Date(r.recordedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : `#${r.id}`)
+                  m(
+                    'option',
+                    { value: String(i) },
+                    r.recordedAt ? new Date(r.recordedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : `#${r.id}`
+                  )
                 )
               )
             )
@@ -105,14 +109,12 @@ export default class ChirpRecordingBar extends Component<{ recordings: Rec[]; di
                 'aria-label': String(t('delete_recording')),
                 onclick: () => {
                   if (!confirm(String(t('confirm_delete_recording')))) return;
-                  app
-                    .request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}` })
-                    .then(() => {
-                      const left = (discussion.attribute('chirpRecordings') || []).filter((r: Rec) => r.id !== rec.id);
-                      discussion.pushAttributes({ chirpRecordings: left });
-                      this.selected = -1;
-                      m.redraw();
-                    });
+                  app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/recordings/${rec.id}` }).then(() => {
+                    const left = (discussion.attribute('chirpRecordings') || []).filter((r: Rec) => r.id !== rec.id);
+                    discussion.pushAttributes({ chirpRecordings: left });
+                    this.selected = -1;
+                    m.redraw();
+                  });
                 },
               })
             )

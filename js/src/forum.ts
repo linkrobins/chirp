@@ -96,10 +96,13 @@ app.initializers.add('linkrobins-chirp', () => {
     const result = original(options);
     try {
       if (options?.method === 'POST' && /\/api\/posts$/.test(String(options.url || '')) && result?.then) {
-        result.then((res: any) => {
-          const did = Number(res?.data?.relationships?.discussion?.data?.id || 0);
-          if (did && res?.data?.type === 'posts') state.notifyPost(did);
-        }, () => {});
+        result.then(
+          (res: any) => {
+            const did = Number(res?.data?.relationships?.discussion?.data?.id || 0);
+            if (did && res?.data?.type === 'posts') state.notifyPost(did);
+          },
+          () => {}
+        );
       }
     } catch {
       // Never let the live-thread sugar break a request.

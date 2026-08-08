@@ -135,7 +135,11 @@ export default class ChirpChannelsPanel extends Component {
               'ul.ChirpChannels-list',
               this.channels.map((c) =>
                 m('li.ChirpChannels-row', { key: String(c.discussionId) }, [
-                  m('a.ChirpChannels-title', { href: `${this.apiUrl().replace(/\/api$/, '')}/d/${c.discussionId}-${c.slug}`, target: '_blank' }, c.title),
+                  m(
+                    'a.ChirpChannels-title',
+                    { href: `${this.apiUrl().replace(/\/api$/, '')}/d/${c.discussionId}-${c.slug}`, target: '_blank' },
+                    c.title
+                  ),
                   m(
                     Button,
                     { className: 'Button Button--size-sm', loading: this.busy, onclick: () => this.remove(c.discussionId) },
@@ -172,7 +176,17 @@ export default class ChirpChannelsPanel extends Component {
                         'li',
                         { key: String(s.id) },
                         // mousedown beats the input's blur, so the pick lands.
-                        m('button.ChirpChannels-suggestItem', { type: 'button', onmousedown: (e: Event) => { e.preventDefault(); this.pick(s); } }, s.title)
+                        m(
+                          'button.ChirpChannels-suggestItem',
+                          {
+                            type: 'button',
+                            onmousedown: (e: Event) => {
+                              e.preventDefault();
+                              this.pick(s);
+                            },
+                          },
+                          s.title
+                        )
                       )
                     )
               )

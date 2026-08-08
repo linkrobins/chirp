@@ -73,11 +73,15 @@ export default class ChirpState {
   private unloading = false;
 
   constructor() {
-    const mark = () => { this.unloading = true; };
+    const mark = () => {
+      this.unloading = true;
+    };
     window.addEventListener('beforeunload', mark);
     window.addEventListener('pagehide', mark);
     // Back-forward cache can revive the page after 'pagehide' — reset.
-    window.addEventListener('pageshow', () => { this.unloading = false; });
+    window.addEventListener('pageshow', () => {
+      this.unloading = false;
+    });
   }
 
   /** Identities currently talking, from LiveKit's speaker detection. */
