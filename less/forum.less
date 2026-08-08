@@ -374,10 +374,24 @@ html.chirp-blend {
     margin-left: 0;
     width: 100%;
     gap: 8px;
+    flex-wrap: wrap;
 
+    // Whatever wraps onto a row shares that row's full width.
     .Button {
       flex: 1 1 0;
       justify-content: center;
+    }
+
+    .ChirpRecordingBar-pickwrap {
+      flex: 1 1 auto;
+    }
+
+    // Crammed (4+ controls): labels go, icons carry the row.
+    > *:first-child:nth-last-child(n + 4),
+    > *:first-child:nth-last-child(n + 4) ~ * {
+      .Button-label {
+        display: none;
+      }
     }
   }
 }
