@@ -100,6 +100,17 @@ class StartRoomController implements RequestHandlerInterface
 
                 if (!$channel) {
                     foreach (Room::query()->lockForUpdate()->where('mode', 'live')->get() as $existing) {
+                        // Grace window: a JUST-started room has no server-side
+                        // presence until its host's WebRTC connect lands (the
+                        // media server only creates rooms on first join unless
+                        // recording pre-created it) — indistinguishable from a
+                        // dead room to the probe. Don't reconcile rooms younger
+                        // than a minute or a racing second host can silently
+                        // delete a live-in-a-moment room. (Found by the 2ch
+                        // drill: an API-only start with no join was eaten.)
+                        if ($existing->created_at->gt(Carbon::now()->subMinute())) {
+                            continue;
+                        }
                         $existingChannel = $this->channels->forRoom($existing);
                         if ($existingChannel
                             && $this->rooms->roomExists($existingChannel, Room::nameFor($existing->discussion_id)) === false) {
