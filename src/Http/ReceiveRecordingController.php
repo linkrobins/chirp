@@ -28,6 +28,7 @@ class ReceiveRecordingController implements RequestHandlerInterface
 {
     public function __construct(
         protected SettingsRepositoryInterface $settings,
+        protected \LinkRobins\Chirp\Channels $channels,
         protected Client $http,
         protected Paths $paths,
         protected LoggerInterface $log,
@@ -36,16 +37,20 @@ class ReceiveRecordingController implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $apiKey    = (string) $this->settings->get('linkrobins-chirp.api-key');
-        $apiSecret = (string) $this->settings->get('linkrobins-chirp.api-secret');
-        if ($apiKey === '' || $apiSecret === '') {
+        if (!$this->channels->anyConnected()) {
             return new JsonResponse(['error' => 'not configured'], 404);
+        }
+
+        // X-Chirp-Key names WHICH channel signed the delivery — different
+        // channels are different servers with different secrets.
+        $channel = $this->channels->byApiKey($request->getHeaderLine('X-Chirp-Key'));
+        if (!$channel || $channel->apiSecret === '') {
+            return new JsonResponse(['error' => 'bad signature'], 401);
         }
 
         $raw = (string) $request->getBody();
         $sig = $request->getHeaderLine('X-Chirp-Signature');
-        if (!hash_equals($apiKey, $request->getHeaderLine('X-Chirp-Key'))
-            || !hash_equals(hash_hmac('sha256', $raw, $apiSecret), $sig)) {
+        if (!hash_equals(hash_hmac('sha256', $raw, $channel->apiSecret), $sig)) {
             return new JsonResponse(['error' => 'bad signature'], 401);
         }
 

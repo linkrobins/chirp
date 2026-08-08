@@ -37,9 +37,10 @@ return [
 
     new Extend\Locales(__DIR__ . '/locale'),
 
-    // Service URL is admin-overridable for testing; the channel key + resolved
-    // credentials are server-only settings, never serialized to the forum.
-    // 'connected' is the ONLY value the forum payload sees.
+    // Service URL is admin-overridable for testing; the channel keys + resolved
+    // credentials (the 'channels' JSON) are server-only settings, never
+    // serialized to the forum. 'connected' is the ONLY value the forum
+    // payload sees.
     (new Extend\Settings())
         ->default('linkrobins-chirp.service-url', 'https://linkrobins.com')
         ->default('linkrobins-chirp.connected', '0')
@@ -108,6 +109,7 @@ return [
     (new Extend\ErrorHandling())
         ->status('chirp_not_configured', 409)
         ->status('chirp_channel_busy', 409)
+        ->status('chirp_channels_exhausted', 409)
         ->status('chirp_slots_full', 409)
         ->status('chirp_speak_denied', 403),
 ];

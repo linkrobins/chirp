@@ -2,52 +2,29 @@
 
 namespace LinkRobins\Chirp\LiveKit;
 
-use Flarum\Settings\SettingsRepositoryInterface;
+use LinkRobins\Chirp\Channel;
 
 /**
- * Mints LiveKit-compatible access tokens (HS256 JWTs) locally with the
+ * Mints LiveKit-compatible access tokens (HS256 JWTs) locally with a
  * channel's API key/secret from the config exchange — the hosted service is
  * never in the join hot path. Hand-rolled on purpose: it's ~30 lines of
  * RFC 7519, and pulling in a JWT library for one signature would be the
  * extension's only heavyweight dependency.
+ *
+ * Multi-channel: every mint is scoped to an explicit Channel (a forum may
+ * run several — each room lives on exactly one). "Is Chirp configured at
+ * all" questions belong to the Channels repository, not here.
  */
 class AccessToken
 {
-    public function __construct(protected SettingsRepositoryInterface $settings)
-    {
-    }
-
-    public function configured(): bool
-    {
-        return $this->settings->get('linkrobins-chirp.connected') === '1'
-            && (string) $this->settings->get('linkrobins-chirp.api-secret') !== '';
-    }
-
-    /** wss:// signaling endpoint for the browser client. */
-    public function endpoint(): string
-    {
-        return (string) $this->settings->get('linkrobins-chirp.endpoint');
-    }
-
-    /** https:// form of the endpoint, for server-to-server room API calls. */
-    public function httpEndpoint(): string
-    {
-        return preg_replace('/^wss:/', 'https:', $this->endpoint()) ?? '';
-    }
-
-    public function speakerSlots(): int
-    {
-        return max(1, (int) $this->settings->get('linkrobins-chirp.speaker-slots', 1));
-    }
-
     /**
      * A participant join token. $identity must be unique per participant in
      * the room (LiveKit replaces an existing connection with the same
      * identity — which is exactly right for a user rejoining after a drop).
      */
-    public function forParticipant(string $room, string $identity, string $name, bool $canPublish, int $ttlSeconds = 21600): string
+    public function forParticipant(Channel $channel, string $room, string $identity, string $name, bool $canPublish, int $ttlSeconds = 21600): string
     {
-        return $this->sign([
+        return $this->sign($channel, [
             'sub'   => $identity,
             'name'  => $name,
             'video' => [
@@ -65,9 +42,9 @@ class AccessToken
     /** A short-lived server token for room-admin API calls (list/delete/create).
      *  roomCreate rides along so CreateRoom (pre-creating a room to attach
      *  metadata, e.g. the record flag) works with the same token. */
-    public function forRoomAdmin(string $room): string
+    public function forRoomAdmin(Channel $channel, string $room): string
     {
-        return $this->sign([
+        return $this->sign($channel, [
             'sub'   => 'chirp-server',
             'video' => [
                 'room'       => $room,
@@ -81,11 +58,11 @@ class AccessToken
         ], 60);
     }
 
-    protected function sign(array $claims, int $ttlSeconds): string
+    protected function sign(Channel $channel, array $claims, int $ttlSeconds): string
     {
         $now    = time();
         $claims = array_merge($claims, [
-            'iss' => (string) $this->settings->get('linkrobins-chirp.api-key'),
+            'iss' => $channel->apiKey,
             'nbf' => $now - 10,
             'iat' => $now,
             'exp' => $now + $ttlSeconds,
@@ -93,7 +70,7 @@ class AccessToken
 
         $encode  = fn (array $part) => $this->b64(json_encode($part, JSON_UNESCAPED_SLASHES));
         $payload = $encode(['alg' => 'HS256', 'typ' => 'JWT']) . '.' . $encode($claims);
-        $sig     = hash_hmac('sha256', $payload, (string) $this->settings->get('linkrobins-chirp.api-secret'), true);
+        $sig     = hash_hmac('sha256', $payload, $channel->apiSecret, true);
 
         return $payload . '.' . $this->b64($sig);
     }

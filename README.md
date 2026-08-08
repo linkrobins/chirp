@@ -43,9 +43,13 @@ your community actually keeps.
 
 - A **channel** is a dedicated hosted audio server from
   [linkrobins.com](https://linkrobins.com/chirp) — $10/mo flat, up to 50 on
-  stage at once, unlimited listeners, never metered.
-- Install this extension, paste your **channel key** in the admin settings —
-  that's the entire setup. No media servers, ports, or configuration.
+  stage at once, unlimited listeners, never metered. Each channel powers one
+  standing voice channel plus one live show at a time.
+- Install this extension, paste your **channel keys** in the admin settings —
+  that's the entire setup. No media servers, ports, or configuration. Paste
+  several keys for Discord-style multiple voice channels (or simultaneous
+  shows) on one forum; the same account's channels can also serve different
+  forums, one key each.
 - *Go live* and *Take the mic* are normal Flarum permissions (moderators and
   members by default). Anyone who can see the discussion can listen.
 - One live show at a time per channel — add more channels for simultaneous

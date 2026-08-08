@@ -1,15 +1,22 @@
 linkrobins-chirp:
   admin:
-    key_label: Chirp channel key
-    key_help: >
-      Paste the channel key from your linkrobins.com dashboard → Chirp. That's
-      it — your forum connects to your channel's dedicated audio server
-      automatically. Leave it blank to disconnect.
+    keys_label: Chirp channel keys
+    keys_help: >
+      Paste each channel key from your linkrobins.com dashboard → Chirp — one
+      per channel. Every channel powers ONE standing voice channel plus one
+      live broadcast at a time, so more voice channels on this forum means
+      more channels here. Remove a key to disconnect its channel.
+    keys_placeholder: Channel key…
+    keys_add: Add another key
+    keys_save: Save & connect
+    keys_remove: Remove this key
+    keys_status_connected: Connected
+    keys_status_bad: Not recognized
     connected: >
-      ✓ Connected — your channel is live-ready. Moderators can go live on any
+      ✓ Connected — you're live-ready. Moderators can go live on any
       discussion; members can take the mic up to your channel's speaker slots.
     disconnected: >
-      Not connected yet. Paste your channel key below — get one from your
+      Not connected yet. Paste a channel key below — get one from your
       linkrobins.com dashboard → Chirp.
     service_url_label: Service URL
     service_url_help: Only change this if support asks you to.
@@ -33,8 +40,15 @@ linkrobins-chirp:
     channels_label: Voice channels
     channels_help: >
       Standing voice rooms, Discord-style: designate a discussion and its
-      voice bar stays open until you remove it here. Voice channels never
-      block Go live and are never recorded.
+      voice bar stays open until you remove it here. Each of your channels
+      powers one voice channel — want more standing rooms, add another
+      channel on your linkrobins.com dashboard. Voice channels never block
+      Go live and are never recorded.
+    channels_slots: "{used} of {total} channels power a voice channel."
+    channels_exhausted: >
+      Every channel already powers a voice channel. Add another channel on
+      your linkrobins.com dashboard, paste its key above, and you can
+      designate more.
     channels_none: No voice channels yet.
     channels_placeholder: Search discussions…
     channels_add: Designate
@@ -121,8 +135,9 @@ linkrobins-chirp:
       Delete this recording for good? Your forum holds the only copy — there
       is no undo.
     channel_busy_elsewhere: >
-      Your channel is already live on another discussion. End that room first —
-      or add another channel on linkrobins.com to run rooms side by side.
+      Every channel is broadcasting right now. End one of the live rooms
+      first — or add another channel on linkrobins.com to run more rooms
+      side by side.
     not_configured: >
       Chirp isn't connected yet. An admin needs to paste the channel key in
       Admin → Chirp.
@@ -130,6 +145,7 @@ linkrobins-chirp:
   lib:
     error:
       chirp_not_configured_message: Chirp isn't set up on this forum yet — an admin needs to paste the channel key.
-      chirp_channel_busy_message: Your channel already has a live room. End it first, or add another channel for simultaneous rooms.
+      chirp_channel_busy_message: Every channel already has a live room. End one first, or add another channel for more simultaneous rooms.
+      chirp_channels_exhausted_message: Every channel already powers a voice channel — add another channel on linkrobins.com to open more.
       chirp_slots_full_message: Every speaker slot is taken right now — you can keep listening, and grab the mic when someone steps down.
       chirp_speak_denied_message: The host decides who speaks in this room — raise your hand or keep listening.

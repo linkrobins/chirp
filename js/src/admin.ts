@@ -1,11 +1,13 @@
 import app from 'flarum/admin/app';
 import m from 'mithril';
 import ChirpChannelsPanel from './components/ChirpChannelsPanel';
+import ChirpKeysPanel from './components/ChirpKeysPanel';
 
-// Chirp admin: one field. The owner pastes their channel key from the
-// linkrobins.com dashboard and the extension exchanges it for the channel's
-// connection config server-side. A plain-language status banner tells a
-// no-experience user exactly where things stand.
+// Chirp admin. The owner pastes channel keys from the linkrobins.com
+// dashboard (one per purchased channel — each powers one standing voice
+// channel plus one live broadcast at a time) and the extension exchanges
+// each for its channel's connection config server-side. A plain-language
+// status banner tells a no-experience user exactly where things stand.
 app.initializers.add('linkrobins-chirp', () => {
   const banner = (): m.Children => {
     const t = (k: string) => app.translator.trans('linkrobins-chirp.admin.' + k);
@@ -23,12 +25,8 @@ app.initializers.add('linkrobins-chirp', () => {
   app.registry
     .for('linkrobins-chirp')
     .registerSetting(banner, 100)
-    .registerSetting({
-      setting: 'linkrobins-chirp.channel-key',
-      label: app.translator.trans('linkrobins-chirp.admin.key_label'),
-      help: app.translator.trans('linkrobins-chirp.admin.key_help'),
-      type: 'text',
-    })
+    // Multi-channel keys: self-saving list (each save runs the exchange).
+    .registerSetting(() => m(ChirpKeysPanel), 90)
     .registerSetting({
       setting: 'linkrobins-chirp.default-speak-policy',
       label: app.translator.trans('linkrobins-chirp.admin.policy_label'),

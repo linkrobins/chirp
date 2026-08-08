@@ -100,19 +100,35 @@ class RoomModesTest extends TestCase
         $this->configure();
         $this->setting('linkrobins-chirp.recordings-available', '1');
 
-        // Two designated channels coexist…
-        foreach ([2, 3] as $id) {
-            $r = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => $id, 'mode' => 'persistent']]));
-            $this->assertEquals(200, $r->getStatusCode());
-        }
-        // …and a live show still starts alongside them.
+        // One channel = one standing voice channel…
+        $r = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 2, 'mode' => 'persistent']]));
+        $this->assertEquals(200, $r->getStatusCode());
+
+        // …and a live show still starts alongside it (separate slot).
         $live = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 1]]));
         $this->assertEquals(200, $live->getStatusCode());
-        $this->assertEquals(3, $this->database()->table('chirp_rooms')->count());
+        $this->assertEquals(2, $this->database()->table('chirp_rooms')->count());
 
         // A discussion that IS a voice channel can't also go live.
         $busy = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 2]]));
         $this->assertEquals(409, $busy->getStatusCode());
+    }
+
+    #[Test]
+    public function a_second_voice_channel_needs_a_second_channel(): void
+    {
+        $this->configure();
+
+        $first = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 2, 'mode' => 'persistent']]));
+        $this->assertEquals(200, $first->getStatusCode());
+
+        // The single (legacy-settings) channel already powers a voice
+        // channel — the next designation is the "add another channel"
+        // moment, as a typed 409.
+        $second = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 3, 'mode' => 'persistent']]));
+        $this->assertEquals(409, $second->getStatusCode());
+        $this->assertEquals('chirp_channels_exhausted', json_decode((string) $second->getBody(), true)['errors'][0]['code']);
+        $this->assertEquals(1, $this->database()->table('chirp_rooms')->count());
     }
 
     #[Test]

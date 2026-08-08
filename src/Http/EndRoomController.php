@@ -5,6 +5,7 @@ namespace LinkRobins\Chirp\Http;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\EmptyResponse;
+use LinkRobins\Chirp\Channels;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Room;
 use Psr\Http\Message\ResponseInterface;
@@ -20,8 +21,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class EndRoomController implements RequestHandlerInterface
 {
-    public function __construct(protected RoomService $rooms)
-    {
+    public function __construct(
+        protected RoomService $rooms,
+        protected Channels $channels,
+    ) {
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -41,8 +44,13 @@ class EndRoomController implements RequestHandlerInterface
             $actor->assertCan('chirpStart', $room->discussion);
         }
 
+        // Resolve the channel BEFORE deleting the row (forRoom reads it).
+        $channel = $this->channels->forRoom($room);
+
         $room->delete();
-        $this->rooms->deleteRoom(Room::nameFor($discussionId));
+        if ($channel) {
+            $this->rooms->deleteRoom($channel, Room::nameFor($discussionId));
+        }
 
         return new EmptyResponse(204);
     }

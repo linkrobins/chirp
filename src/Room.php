@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Carbon\Carbon $created_at
  * @property string $speak_policy
  * @property string $mode
+ * @property string|null $channel  Service-side handle of the channel this room runs on (NULL = single-key era)
  * @property-read Discussion $discussion
  * @property-read User|null $user
  */
@@ -26,7 +27,7 @@ class Room extends AbstractModel
 {
     protected $table = 'chirp_rooms';
 
-    protected $fillable = ['discussion_id', 'user_id', 'created_at', 'speak_policy', 'mode'];
+    protected $fillable = ['discussion_id', 'user_id', 'created_at', 'speak_policy', 'mode', 'channel'];
 
     protected $casts = ['created_at' => 'datetime'];
 

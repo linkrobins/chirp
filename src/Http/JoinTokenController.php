@@ -7,6 +7,7 @@ use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Laminas\Diactoros\Response\JsonResponse;
+use LinkRobins\Chirp\Channels;
 use LinkRobins\Chirp\Exception\NotConfiguredException;
 use LinkRobins\Chirp\Exception\SlotsFullException;
 use LinkRobins\Chirp\Exception\SpeakDeniedException;
@@ -33,6 +34,7 @@ class JoinTokenController implements RequestHandlerInterface
     public function __construct(
         protected AccessToken $tokens,
         protected RoomService $rooms,
+        protected Channels $channels,
     ) {
     }
 
@@ -40,7 +42,7 @@ class JoinTokenController implements RequestHandlerInterface
     {
         $actor = RequestUtil::getActor($request);
 
-        if (!$this->tokens->configured()) {
+        if (!$this->channels->anyConnected()) {
             throw new NotConfiguredException();
         }
 
@@ -51,6 +53,13 @@ class JoinTokenController implements RequestHandlerInterface
         // No live room → nothing to join.
         /** @var Room $room */
         $room = Room::query()->where('discussion_id', $discussion->id)->firstOrFail();
+
+        // The channel this room runs on — tokens, slot counts and the
+        // signaling endpoint are all per-channel.
+        $channel = $this->channels->forRoom($room);
+        if (!$channel) {
+            throw new NotConfiguredException();
+        }
 
         $roomName    = Room::nameFor($discussion->id);
         $wantsToTalk = (bool) Arr::get($request->getParsedBody(), 'speak', false);
@@ -74,8 +83,8 @@ class JoinTokenController implements RequestHandlerInterface
                 }
             }
 
-            $publishers = $this->rooms->publisherCount($roomName);
-            if ($publishers === null || $publishers >= $this->tokens->speakerSlots()) {
+            $publishers = $this->rooms->publisherCount($channel, $roomName);
+            if ($publishers === null || $publishers >= $channel->speakerSlots) {
                 throw new SlotsFullException();
             }
             $canPublish = true;
@@ -87,8 +96,8 @@ class JoinTokenController implements RequestHandlerInterface
         $name     = $actor->isGuest() ? 'Guest' : $actor->display_name;
 
         return new JsonResponse([
-            'endpoint'   => $this->tokens->endpoint(),
-            'token'      => $this->tokens->forParticipant($roomName, $identity, $name, $canPublish),
+            'endpoint'   => $channel->endpoint,
+            'token'      => $this->tokens->forParticipant($channel, $roomName, $identity, $name, $canPublish),
             'canPublish' => $canPublish,
         ]);
     }

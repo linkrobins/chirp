@@ -159,13 +159,15 @@ app.initializers.add('linkrobins-chirp', () => {
   extend(DiscussionControls, 'moderationControls', function (this: any, items: any, discussion: any) {
     if (!discussion?.attribute?.('canChirpStart') || discussion.attribute('chirpIsLive')) return;
 
-    // Channel already live somewhere else? Say so up front instead of letting
+    // Every channel already broadcasting? Say so up front instead of letting
     // them click into a 409 (core renders a generic 'something went wrong'
     // for anything but 422/401/403/404/413/429, so our own copy has to do it).
-    const liveElsewhere = Number(app.forum.attribute('chirpLiveDiscussionId') || 0);
+    // Multi-channel: each purchased channel has its own live slot, so this is
+    // "any slot free", not "is one room live".
+    const liveFree = app.forum.attribute('chirpLiveFree') !== false;
 
     const start = (mode: 'live') => {
-      if (liveElsewhere && liveElsewhere !== Number(discussion.id())) {
+      if (!liveFree) {
         app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.forum.channel_busy_elsewhere'));
         return;
       }
@@ -187,7 +189,9 @@ app.initializers.add('linkrobins-chirp', () => {
           if (!res) return;
           state.describe(String(discussion.title()), app.route.discussion(discussion));
           discussion.pushAttributes({ chirpIsLive: true, chirpRoomMode: mode });
-          app.forum.pushAttributes({ chirpLiveDiscussionId: Number(discussion.id()) });
+          // Don't guess whether another channel is still free — a wrong
+          // "busy" here blocks a legitimate second broadcast, and a race
+          // lands as a clean 409 with our own copy anyway.
           await state.connect(Number(discussion.id()), res.endpoint, res.token, true);
           m.redraw();
         });

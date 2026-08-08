@@ -16,6 +16,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class ListChannelsController implements RequestHandlerInterface
 {
+    public function __construct(protected \LinkRobins\Chirp\Channels $channels)
+    {
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         RequestUtil::getActor($request)->assertAdmin();
@@ -33,6 +37,23 @@ class ListChannelsController implements RequestHandlerInterface
             ->values()
             ->all();
 
-        return new JsonResponse(['channels' => $channels]);
+        // Occupancy for the panel: each purchased channel powers one
+        // standing voice channel; when used == total the next designation
+        // needs another channel.
+        [$used, $total] = $this->channels->persistentSlots();
+
+        // Per-key exchange status for the keys panel, in the admin's key
+        // order (the exchange stores entries positionally). Handles are
+        // service-side names, safe to show an admin.
+        $keys = array_map(fn ($c) => [
+            'connected' => $c->connected,
+            'handle'    => $c->handle,
+        ], $this->channels->all());
+
+        return new JsonResponse([
+            'channels' => $channels,
+            'slots'    => ['used' => $used, 'total' => $total],
+            'keys'     => $keys,
+        ]);
     }
 }

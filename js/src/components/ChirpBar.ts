@@ -291,7 +291,8 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
               app.request({ method: 'DELETE', url: `${app.forum.attribute('apiUrl')}/chirp/rooms/${id}` }).then(() => {
                 state.leave();
                 discussion.pushAttributes({ chirpIsLive: false });
-                app.forum.pushAttributes({ chirpLiveDiscussionId: 0 });
+                // Ending a broadcast frees this channel's live slot.
+                app.forum.pushAttributes({ chirpLiveFree: true });
                 m.redraw();
               });
             },
