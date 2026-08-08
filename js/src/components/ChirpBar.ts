@@ -130,7 +130,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
                   ])
                 : null,
             ])
-          : m('span.ChirpBar-waiting', t(mode === 'persistent' ? 'voice_empty' : 'waiting_for_speakers')),
+          : null,
 
         // ── The count: listeners for a show; for a voice channel there IS no
         //    listening side, so it's simply everyone in the room. ────────────
