@@ -668,6 +668,20 @@ html.chirp-blend {
   }
 }
 
+// Schedule modal: date + time side by side, each with a real native picker.
+.ChirpSchedule-inputs {
+  display: flex;
+  gap: 8px;
+
+  input[type='date'] {
+    flex: 1.4;
+  }
+
+  input[type='time'] {
+    flex: 1;
+  }
+}
+
 // Cool accent, no pulse: an announcement, not an event in progress.
 .ChirpBadge--schedule {
   background: var(--chirp-cool);

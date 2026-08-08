@@ -82,6 +82,7 @@ linkrobins-chirp:
     schedule_title: Schedule a live room
     schedule_label: When do you go live?
     schedule_help: Followers of this discussion get a heads-up, and the discussion shows a countdown until you go live.
+    schedule_tz: "Your timezone: {zone} — everyone else sees the time in theirs."
     schedule_submit: Schedule
     schedule_cancel: Cancel
     confirm_cancel_schedule: Withdraw the scheduled room? The countdown disappears for everyone.
