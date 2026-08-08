@@ -345,6 +345,7 @@ html.chirp-blend {
 
   // Reserve room so the last post never hides under the docked bar.
   html.chirp-live .App-content,
+  html.chirp-scheduled .App-content,
   html.chirp-recorded .App-content {
     padding-bottom: calc(116px + var(--chirp-composer-h, 0px));
   }
@@ -533,6 +534,7 @@ html.chirp-blend {
   // (chirp-recorded): both legitimately dock to the bottom, so lift the dock
   // above the bar instead of overlapping it.
   html.chirp-live .ChirpDock,
+  html.chirp-scheduled .ChirpDock,
   html.chirp-recorded .ChirpDock {
     bottom: calc(112px + var(--chirp-composer-h, 0px));
   }
@@ -657,10 +659,8 @@ html.chirp-blend {
 }
 
 // ── The countdown bar for a scheduled room ─────────────────────────────────
-// In-flow everywhere: a countdown doesn't need to chase you down the page.
+// Inherits the live bar's full positioning (sticky desktop, docked phones).
 .ChirpBar--schedule {
-  position: static !important;
-
   .ChirpSchedule-when {
     color: var(--muted-color);
     font-size: calc(13px * var(--lr-ui-scale, 1));

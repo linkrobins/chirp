@@ -3,6 +3,7 @@ import Component, { type ComponentAttrs } from 'flarum/common/Component';
 import Button from 'flarum/common/components/Button';
 import type Mithril from 'mithril';
 import m from 'mithril';
+import ComposerTracker from '../composerTracker';
 
 interface ChirpScheduleBarAttrs extends ComponentAttrs {
   discussion: any;
@@ -10,21 +11,32 @@ interface ChirpScheduleBarAttrs extends ComponentAttrs {
 
 /**
  * The countdown strip: "LIVE in 2h 13m" in the exact spot the live bar will
- * take over when the host shows up. In-flow everywhere (a countdown doesn't
- * need to chase you down the page); ticks on a coarse timer — minute
- * precision is the honest resolution for a show that starts when the host
- * clicks a button.
+ * take over when the host shows up. Follows you like the live bar does
+ * (sticky desktop, docked phones, composer-aware); ticks on a coarse timer —
+ * minute precision is the honest resolution for a show that starts when the
+ * host clicks a button.
  */
 export default class ChirpScheduleBar extends Component<ChirpScheduleBarAttrs> {
   private timer: ReturnType<typeof setInterval> | null = null;
 
+  // Same persistence as the live and recording bars: sticky on desktop,
+  // bottom-docked on phones, composer-aware — the countdown follows you.
+  private tracker = new ComposerTracker('chirp-scheduled');
+
   oncreate(vnode: Mithril.VnodeDOM<ChirpScheduleBarAttrs>) {
     super.oncreate(vnode);
+    this.tracker.start();
     this.timer = setInterval(() => m.redraw(), 15000);
+  }
+
+  onupdate(vnode: Mithril.VnodeDOM<ChirpScheduleBarAttrs>) {
+    super.onupdate(vnode);
+    this.tracker.update();
   }
 
   onremove(vnode: Mithril.VnodeDOM<ChirpScheduleBarAttrs>) {
     super.onremove(vnode);
+    this.tracker.stop();
     if (this.timer) clearInterval(this.timer);
   }
 
@@ -48,7 +60,7 @@ export default class ChirpScheduleBar extends Component<ChirpScheduleBarAttrs> {
 
     const canCancel = !!discussion.attribute('canChirpStart');
 
-    return m('.ChirpBar.ChirpBar--inline.ChirpBar--schedule', [
+    return m('.ChirpBar.ChirpBar--schedule', [
       m('.ChirpBar-live', [
         m('span.ChirpBadge.ChirpBadge--schedule', countdown ? t('live_in', { time: countdown }) : t('starting_soon')),
       ]),
