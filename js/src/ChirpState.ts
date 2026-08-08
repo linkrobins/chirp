@@ -4,7 +4,7 @@ import m from 'mithril';
 // webpack chunk, and Flarum's asset publisher only copies the named
 // forum.js/admin.js bundles — the chunk 404s at runtime and the join
 // spinner hangs forever.
-import { Room, RoomEvent, Track, createAudioAnalyser } from 'livekit-client';
+import { Room, RoomEvent, Track } from 'livekit-client';
 
 export interface Speaker {
   key: string;
@@ -57,9 +57,9 @@ export default class ChirpState {
   /** Network blip: LiveKit is re-establishing the session. */
   reconnecting = false;
 
-  /** Talking into a muted mic right now (sustained voice on the muted track). */
+  /** Talking into a muted mic right now (sustained voice on the monitor). */
   mutedTalking = false;
-  private mutedAnalyser: { calculateVolume: () => number; cleanup: () => Promise<void> | void } | null = null;
+  private mutedMonitor: { stream: MediaStream; ctx: AudioContext } | null = null;
   private mutedTimer: ReturnType<typeof setInterval> | null = null;
   private mutedHot = 0;
 
@@ -321,27 +321,41 @@ export default class ChirpState {
     if (!this.room || !this.canPublish) return;
     await this.room.localParticipant.setMicrophoneEnabled(!muted);
     this.muted = muted;
-    if (muted) this.startMutedMonitor();
+    if (muted) void this.startMutedMonitor();
     else this.stopMutedMonitor();
     m.redraw();
   }
 
   /**
-   * The classic live-audio failure: talking into a muted mic. LiveKit keeps
-   * capturing the (unpublished) track while muted, so a local analyser can
-   * tell when someone is speaking and the bar shows "You're muted". Entirely
-   * best-effort — if the track was stopped, there's just no hint.
+   * The classic live-audio failure: talking into a muted mic. Muting
+   * DISABLES the underlying MediaStreamTrack, so analysing the LiveKit track
+   * only ever hears silence — instead, while muted, open an independent
+   * monitor stream (permission was already granted for the mic) and watch
+   * its RMS level; sustained voice shows "You're muted". The monitor closes
+   * the moment you unmute or leave. Entirely best-effort.
    */
-  private startMutedMonitor(): void {
+  private async startMutedMonitor(): Promise<void> {
     this.stopMutedMonitor();
     try {
-      const pub = [...(this.room?.localParticipant?.audioTrackPublications?.values?.() ?? [])][0] as any;
-      const track = pub?.track;
-      if (!track || track.mediaStreamTrack?.readyState !== 'live') return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!this.muted || !this.room) {
+        // Unmuted (or gone) while we were asking — never keep a stray mic.
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const ctx = new AudioContext();
+      void ctx.resume?.();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buf = new Float32Array(analyser.fftSize);
+      this.mutedMonitor = { stream, ctx };
 
-      this.mutedAnalyser = createAudioAnalyser(track);
       this.mutedTimer = setInterval(() => {
-        const loud = (this.mutedAnalyser?.calculateVolume() ?? 0) > 0.08;
+        analyser.getFloatTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const loud = Math.sqrt(sum / buf.length) > 0.04;
         this.mutedHot = loud ? this.mutedHot + 1 : 0;
         const show = this.mutedHot >= 3; // ~1s of sustained voice
         if (show !== this.mutedTalking) {
@@ -350,7 +364,7 @@ export default class ChirpState {
         }
       }, 300);
     } catch {
-      // No analyser, no hint.
+      // Permission/API unavailable: no monitor, no hint.
     }
   }
 
@@ -359,8 +373,9 @@ export default class ChirpState {
       clearInterval(this.mutedTimer);
       this.mutedTimer = null;
     }
-    void this.mutedAnalyser?.cleanup?.();
-    this.mutedAnalyser = null;
+    this.mutedMonitor?.stream.getTracks().forEach((t) => t.stop());
+    void this.mutedMonitor?.ctx.close().catch(() => {});
+    this.mutedMonitor = null;
     this.mutedHot = 0;
     if (this.mutedTalking) {
       this.mutedTalking = false;
