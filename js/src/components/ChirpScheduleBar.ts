@@ -61,10 +61,11 @@ export default class ChirpScheduleBar extends Component<ChirpScheduleBarAttrs> {
     const canCancel = !!discussion.attribute('canChirpStart');
 
     return m('.ChirpBar.ChirpBar--schedule', [
-      m('.ChirpBar-live', [
-        m('span.ChirpBadge.ChirpBadge--schedule', countdown ? t('live_in', { time: countdown }) : t('starting_soon')),
-      ]),
-      m('span.ChirpSchedule-when', startsAt.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })),
+      m('.ChirpBar-live', [m('span.ChirpBadge.ChirpBadge--schedule', countdown ? t('live_in', { time: countdown }) : t('starting_soon'))]),
+      m(
+        'span.ChirpSchedule-when',
+        startsAt.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      ),
       m('.ChirpBar-actions', [
         canCancel
           ? m(

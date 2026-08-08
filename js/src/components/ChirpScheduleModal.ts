@@ -72,7 +72,12 @@ export default class ChirpScheduleModal extends Modal<ChirpScheduleModalAttrs> {
       m('.Form-group', [
         m(
           Button,
-          { className: 'Button Button--primary Button--block', loading: this.saving, disabled: !this.date || !this.time, onclick: () => this.submit() },
+          {
+            className: 'Button Button--primary Button--block',
+            loading: this.saving,
+            disabled: !this.date || !this.time,
+            onclick: () => this.submit(),
+          },
           t('schedule_submit')
         ),
       ]),

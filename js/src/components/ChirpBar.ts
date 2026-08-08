@@ -83,9 +83,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       [
         // ── Live badge + waveform ───────────────────────────────────────────
         m('.ChirpBar-live', [
-          mode === 'persistent'
-            ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge'))
-            : m('span.ChirpBadge', t('live_badge')),
+          mode === 'persistent' ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge')) : m('span.ChirpBadge', t('live_badge')),
           joined && state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
           joined && state.reconnecting ? m('span.ChirpBadge.ChirpBadge--reconnecting', t('reconnecting')) : null,
           m(
@@ -107,7 +105,12 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
                   {
                     className: [featured.speaking ? 'is-speaking' : '', featured.muted ? 'is-muted' : ''].join(' ').trim(),
                     style: { background: featured.color },
-                    onclick: joined ? (e: Event) => { e.stopPropagation(); this.openRoster(); } : undefined,
+                    onclick: joined
+                      ? (e: Event) => {
+                          e.stopPropagation();
+                          this.openRoster();
+                        }
+                      : undefined,
                   },
                   featured.initial
                 )
@@ -120,7 +123,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
                       icon: 'fas fa-ellipsis',
                       'aria-label': t('participants'),
                       title: String(t('participants')),
-                      onclick: (e: Event) => { e.stopPropagation(); this.openRoster(); },
+                      onclick: (e: Event) => {
+                        e.stopPropagation();
+                        this.openRoster();
+                      },
                     }),
                     // Pending raised hands ping the host here — the queue
                     // itself lives in the participants modal.
@@ -239,7 +245,11 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
       // Same costume as the dock's Leave — one action, one look, everywhere.
       actions.push(
-        m(Button, { className: 'Button Button--size-sm ChirpBar-btn', icon: 'fas fa-arrow-right-from-bracket', onclick: () => state.leave() }, t('leave'))
+        m(
+          Button,
+          { className: 'Button Button--size-sm ChirpBar-btn', icon: 'fas fa-arrow-right-from-bracket', onclick: () => state.leave() },
+          t('leave')
+        )
       );
     }
 
@@ -265,7 +275,6 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
           )
         )
       );
-
     }
 
     // End: hosts/mods pull the plug on a SHOW only. A designated voice
