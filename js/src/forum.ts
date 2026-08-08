@@ -10,6 +10,9 @@ import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
 import ChirpRecordingBar from './components/ChirpRecordingBar';
 import ChirpRoomStartedNotification from './components/ChirpRoomStartedNotification';
+import ChirpRoomScheduledNotification from './components/ChirpRoomScheduledNotification';
+import ChirpScheduleBar from './components/ChirpScheduleBar';
+import ChirpScheduleModal from './components/ChirpScheduleModal';
 
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
@@ -21,11 +24,17 @@ const state = new ChirpState();
 app.initializers.add('linkrobins-chirp', () => {
   // Followers hear about rooms opening.
   app.notificationComponents.chirpRoomStarted = ChirpRoomStartedNotification as any;
+  app.notificationComponents.chirpRoomScheduled = ChirpRoomScheduledNotification as any;
   extend('flarum/forum/components/NotificationGrid', 'notificationTypes', function (this: any, items: any) {
     items.add('chirpRoomStarted', {
       name: 'chirpRoomStarted',
       icon: 'fas fa-microphone',
       label: app.translator.trans('linkrobins-chirp.forum.settings.notify_room_started_label'),
+    });
+    items.add('chirpRoomScheduled', {
+      name: 'chirpRoomScheduled',
+      icon: 'fas fa-calendar-days',
+      label: app.translator.trans('linkrobins-chirp.forum.settings.notify_room_scheduled_label'),
     });
   });
 
@@ -126,6 +135,14 @@ app.initializers.add('linkrobins-chirp', () => {
       return;
     }
 
+    // An announced future room holds the spot with a countdown until the
+    // host shows up (going live consumes the schedule server-side).
+    const scheduledAt = discussion.attribute?.('chirpScheduledAt');
+    if (scheduledAt && new Date(String(scheduledAt)).getTime() > Date.now() - 3 * 3600e3) {
+      vnode.children.unshift(m(ChirpScheduleBar, { discussion }));
+      return;
+    }
+
     const recordings = discussion.attribute?.('chirpRecordings') || [];
     if (recordings.length) {
       vnode.children.unshift(m(ChirpRecordingBar, { recordings, discussion }));
@@ -178,6 +195,17 @@ app.initializers.add('linkrobins-chirp', () => {
     items.add(
       'chirp-go-live',
       m(Button, { icon: 'fas fa-microphone', onclick: () => start('live') }, app.translator.trans('linkrobins-chirp.forum.go_live'))
+    );
+
+    // "Going live Friday 8pm" — announce it, followers get the heads-up,
+    // the discussion counts down.
+    items.add(
+      'chirp-schedule',
+      m(
+        Button,
+        { icon: 'fas fa-calendar-days', onclick: () => app.modal.show(ChirpScheduleModal, { discussion }) },
+        app.translator.trans('linkrobins-chirp.forum.schedule_live')
+      )
     );
   });
 });

@@ -5,6 +5,7 @@ namespace LinkRobins\Chirp\Api;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
 use LinkRobins\Chirp\Recording;
+use LinkRobins\Chirp\Schedule;
 use LinkRobins\Chirp\Room;
 
 /**
@@ -25,6 +26,9 @@ class DiscussionFields
 
     /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
     private ?array $recordings = null;
+
+    /** @var array<int, string>|null discussion_id => ISO starts_at; null = not fetched */
+    private ?array $schedules = null;
 
     public function __construct(protected SettingsRepositoryInterface $settings)
     {
@@ -129,6 +133,18 @@ class DiscussionFields
                     }
                 }),
 
+            // The announced future room, if any — a stale one (host never
+            // showed) ages out after a 3h grace instead of lingering forever.
+            Schema\Str::make('chirpScheduledAt')
+                ->nullable()
+                ->get(function ($discussion) {
+                    try {
+                        return $this->scheduleFor((int) $discussion->id);
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                }),
+
             Schema\Boolean::make('chirpCanDeleteRecordings')
                 ->get(function ($discussion, $context) {
                     try {
@@ -174,6 +190,22 @@ class DiscussionFields
         }
 
         return $this->recordings[$discussionId] ?? [];
+    }
+
+    /** Upcoming (grace-windowed) schedules, one query per request. */
+    private function scheduleFor(int $discussionId): ?string
+    {
+        if ($this->schedules === null) {
+            $this->schedules = [];
+            $rows = Schedule::query()
+                ->where('starts_at', '>', \Carbon\Carbon::now()->subHours(3))
+                ->get(['discussion_id', 'starts_at']);
+            foreach ($rows as $row) {
+                $this->schedules[(int) $row->discussion_id] = $row->starts_at->toIso8601String();
+            }
+        }
+
+        return $this->schedules[$discussionId] ?? null;
     }
 
     /** This discussion's room (live show or voice channel), from the once-

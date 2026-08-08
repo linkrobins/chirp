@@ -176,6 +176,51 @@ class RoomModesTest extends TestCase
     }
 
     #[Test]
+    public function scheduling_is_gated_notifies_followers_and_is_consumed_by_going_live(): void
+    {
+        $this->configure();
+        $when = Carbon::now()->addDay()->toIso8601String();
+
+        // A plain member can't schedule…
+        $denied = $this->send($this->request('POST', '/api/chirp/rooms/1/schedule', ['authenticatedAs' => 3, 'json' => ['startsAt' => $when]]));
+        $this->assertEquals(403, $denied->getStatusCode());
+
+        // …the past is not a plan…
+        $past = $this->send($this->request('POST', '/api/chirp/rooms/1/schedule', ['authenticatedAs' => 2, 'json' => ['startsAt' => Carbon::now()->subHour()->toIso8601String()]]));
+        $this->assertEquals(422, $past->getStatusCode());
+
+        // …a moderator can, and the follower gets the heads-up.
+        $ok = $this->send($this->request('POST', '/api/chirp/rooms/1/schedule', ['authenticatedAs' => 2, 'json' => ['startsAt' => $when]]));
+        $this->assertEquals(200, $ok->getStatusCode());
+        $this->assertEquals(1, $this->database()->table('chirp_schedules')->count());
+        $this->assertEquals(1, $this->database()->table('notifications')->where('type', 'chirpRoomScheduled')->where('user_id', 3)->count());
+
+        // The payload carries the countdown source.
+        $show = $this->send($this->request('GET', '/api/discussions/1', ['authenticatedAs' => 3]));
+        $attrs = json_decode((string) $show->getBody(), true)['data']['attributes'];
+        $this->assertNotNull($attrs['chirpScheduledAt']);
+
+        // Going live consumes the schedule.
+        $live = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 2, 'json' => ['discussionId' => 1]]));
+        $this->assertEquals(200, $live->getStatusCode());
+        $this->assertEquals(0, $this->database()->table('chirp_schedules')->count());
+    }
+
+    #[Test]
+    public function cancelling_a_schedule_is_scheduler_or_moderation(): void
+    {
+        $this->configure();
+        $this->database()->table('chirp_schedules')->insert(['discussion_id' => 1, 'user_id' => 2, 'starts_at' => Carbon::now()->addDay(), 'created_at' => Carbon::now()]);
+
+        $denied = $this->send($this->request('DELETE', '/api/chirp/rooms/1/schedule', ['authenticatedAs' => 3]));
+        $this->assertEquals(403, $denied->getStatusCode());
+
+        $ok = $this->send($this->request('DELETE', '/api/chirp/rooms/1/schedule', ['authenticatedAs' => 2]));
+        $this->assertEquals(204, $ok->getStatusCode());
+        $this->assertEquals(0, $this->database()->table('chirp_schedules')->count());
+    }
+
+    #[Test]
     public function stage_moderation_is_host_only_and_validates(): void
     {
         $this->configure();
