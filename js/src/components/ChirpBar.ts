@@ -237,7 +237,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         }
       }
 
-      actions.push(m(Button, { className: 'Button Button--size-sm Button--flat', onclick: () => state.leave() }, t('leave')));
+      // Same costume as the dock's Leave — one action, one look, everywhere.
+      actions.push(
+        m(Button, { className: 'Button Button--size-sm ChirpBar-btn', icon: 'fas fa-arrow-right-from-bracket', onclick: () => state.leave() }, t('leave'))
+      );
     }
 
     // The policy switcher is SHOW furniture — voice channels don't have it.
