@@ -59,7 +59,10 @@ export default class ChirpState {
 
   /** Talking into a muted mic right now (sustained voice on the monitor). */
   mutedTalking = false;
-  private mutedMonitor: { stream: MediaStream; ctx: AudioContext } | null = null;
+  // ⚠️ src/analyser refs are LOAD-BEARING: an unreferenced
+  // MediaStreamAudioSourceNode gets garbage-collected and the analyser
+  // reads silence forever.
+  private mutedMonitor: { stream: MediaStream; ctx: AudioContext; src: MediaStreamAudioSourceNode; analyser: AnalyserNode } | null = null;
   private mutedTimer: ReturnType<typeof setInterval> | null = null;
   private mutedHot = 0;
 
@@ -359,9 +362,10 @@ export default class ChirpState {
       void ctx.resume?.();
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
-      ctx.createMediaStreamSource(stream).connect(analyser);
+      const src = ctx.createMediaStreamSource(stream);
+      src.connect(analyser);
       const buf = new Float32Array(analyser.fftSize);
-      this.mutedMonitor = { stream, ctx };
+      this.mutedMonitor = { stream, ctx, src, analyser };
 
       this.mutedTimer = setInterval(() => {
         analyser.getFloatTimeDomainData(buf);
