@@ -90,28 +90,55 @@
 // ── Multi-channel keys panel ────────────────────────────────────────────────
 
 .ChirpKeys-row {
+  margin-bottom: 8px;
+}
+
+// One composed field: the FormControl shell carries the border/background;
+// input, status pill and remove button live INSIDE it so they read as a unit.
+.ChirpKeys-field {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  max-width: 520px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 4px;
+}
 
-  .FormControl {
-    flex: 1 1 auto;
-  }
+.ChirpKeys-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
 }
 
 .ChirpKeys-status {
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .ChirpKeys-status--ok {
   color: var(--alert-success-color, #2e7d32);
+  background: color-mix(in srgb, currentColor 14%, transparent);
 }
 
 .ChirpKeys-status--bad {
   color: var(--alert-error-color, #c62828);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.ChirpKeys-remove {
+  flex-shrink: 0;
+  color: var(--muted-color);
 }
 
 .ChirpKeys-actions {

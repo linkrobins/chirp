@@ -91,34 +91,40 @@ export default class ChirpKeysPanel extends Component {
       // NO vnode keys here: these rows share a fragment with the unkeyed
       // label/help/actions siblings, and mithril requires all-or-none keys
       // per fragment. Index-reuse is fine — the inputs are controlled.
+      //
+      // Each row is ONE composed field (Karl 2026-08-08: a status badge and
+      // ✕ floating beside the input didn't read as a unit): a FormControl-
+      // styled shell holds a borderless input + status pill + flat remove.
       ...this.keys.map((key, i) =>
         m('.ChirpKeys-row', [
-          m('input.FormControl', {
-            value: key,
-            placeholder: String(t('keys_placeholder')),
-            oninput: (e: Event) => {
-              this.keys[i] = (e.target as HTMLInputElement).value;
-            },
-          }),
-          // Status is positional: the exchange stores channels in key order.
-          this.loaded && key.trim() && this.status[i]
-            ? m(
-                'span.ChirpKeys-status',
-                { className: this.status[i].connected ? 'ChirpKeys-status--ok' : 'ChirpKeys-status--bad' },
-                this.status[i].connected ? t('keys_status_connected') : t('keys_status_bad')
-              )
-            : null,
-          this.keys.length > 1 || key.trim()
-            ? m(Button, {
-                className: 'Button Button--size-sm',
-                icon: 'fas fa-times',
-                'aria-label': String(t('keys_remove')),
-                onclick: () => {
-                  this.keys.splice(i, 1);
-                  if (!this.keys.length) this.keys = [''];
-                },
-              })
-            : null,
+          m('.ChirpKeys-field.FormControl', [
+            m('input.ChirpKeys-input', {
+              value: key,
+              placeholder: String(t('keys_placeholder')),
+              oninput: (e: Event) => {
+                this.keys[i] = (e.target as HTMLInputElement).value;
+              },
+            }),
+            // Status is positional: the exchange stores channels in key order.
+            this.loaded && key.trim() && this.status[i]
+              ? m(
+                  'span.ChirpKeys-status',
+                  { className: this.status[i].connected ? 'ChirpKeys-status--ok' : 'ChirpKeys-status--bad' },
+                  this.status[i].connected ? t('keys_status_connected') : t('keys_status_bad')
+                )
+              : null,
+            this.keys.length > 1 || key.trim()
+              ? m(Button, {
+                  className: 'Button Button--icon Button--flat ChirpKeys-remove',
+                  icon: 'fas fa-times',
+                  'aria-label': String(t('keys_remove')),
+                  onclick: () => {
+                    this.keys.splice(i, 1);
+                    if (!this.keys.length) this.keys = [''];
+                  },
+                })
+              : null,
+          ]),
         ])
       ),
 
