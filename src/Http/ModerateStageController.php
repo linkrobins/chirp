@@ -5,6 +5,7 @@ namespace LinkRobins\Chirp\Http;
 use Flarum\Http\RequestUtil;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
+use LinkRobins\Chirp\Channels;
 use LinkRobins\Chirp\Hand;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Room;
@@ -25,8 +26,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class ModerateStageController implements RequestHandlerInterface
 {
-    public function __construct(protected RoomService $rooms)
-    {
+    public function __construct(
+        protected RoomService $rooms,
+        protected Channels $channels,
+    ) {
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -51,14 +54,19 @@ class ModerateStageController implements RequestHandlerInterface
             return new JsonResponse(['error' => 'not yourself'], 422); // Leave/mute cover self
         }
 
+        $channel = $this->channels->forRoom($room);
+        if (!$channel) {
+            return new JsonResponse(['error' => 'not configured'], 409);
+        }
+
         $roomName = Room::nameFor($discussionId);
         if ($action === 'kick') {
-            $this->rooms->removeParticipant($roomName, $identity);
+            $this->rooms->removeParticipant($channel, $roomName, $identity);
         } elseif ($action === 'mute') {
             // Voice channels: a soft hand — server-side track mute.
-            $this->rooms->muteAudio($roomName, $identity);
+            $this->rooms->muteAudio($channel, $roomName, $identity);
         } else {
-            $this->rooms->revokePublish($roomName, $identity);
+            $this->rooms->revokePublish($channel, $roomName, $identity);
         }
 
         // Hand mode: an approved hand would put the mic straight back —

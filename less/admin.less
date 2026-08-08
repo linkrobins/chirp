@@ -86,3 +86,45 @@
   padding: 7px 12px;
   color: var(--muted-color);
 }
+
+// ── Multi-channel keys panel ────────────────────────────────────────────────
+
+.ChirpKeys-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .FormControl {
+    flex: 1 1 auto;
+  }
+}
+
+.ChirpKeys-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ChirpKeys-status--ok {
+  color: var(--alert-success-color, #2e7d32);
+}
+
+.ChirpKeys-status--bad {
+  color: var(--alert-error-color, #c62828);
+}
+
+.ChirpKeys-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ChirpChannels-slots {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.ChirpChannels-full {
+  margin-top: 8px;
+}

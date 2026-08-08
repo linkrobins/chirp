@@ -64,6 +64,9 @@ class ChirpClientTest extends MockeryTestCase
         $config = $client->fetchConfig('CHANNEL-KEY');
 
         $this->assertSame([
+            // No handle in the response (older service) → stable digest of
+            // the endpoint stands in.
+            'handle'        => substr(sha1('wss://chirp-me.linkrobins.com'), 0, 12),
             'endpoint'      => 'wss://chirp-me.linkrobins.com',
             'api_key'       => 'LKabc',
             'api_secret'    => 'secret',

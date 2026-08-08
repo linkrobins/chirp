@@ -24,6 +24,7 @@ interface Suggestion {
  */
 export default class ChirpChannelsPanel extends Component {
   private channels: Channel[] = [];
+  private slots = { used: 0, total: 0 };
   private loading = true;
   private busy = false;
 
@@ -48,6 +49,7 @@ export default class ChirpChannelsPanel extends Component {
     try {
       const res = await app.request<any>({ url: `${this.apiUrl()}/chirp/channels` });
       this.channels = res?.channels || [];
+      this.slots = res?.slots || { used: this.channels.length, total: 0 };
     } catch {
       this.channels = [];
     }
@@ -99,6 +101,13 @@ export default class ChirpChannelsPanel extends Component {
         method: 'POST',
         url: `${this.apiUrl()}/chirp/rooms`,
         body: { discussionId: this.selected.id, mode: 'persistent' },
+        // Every channel already powers a voice channel → say what to do,
+        // not "something went wrong".
+        errorHandler: (error: any) => {
+          const code = error?.response?.errors?.[0]?.code;
+          if (code !== 'chirp_channels_exhausted') throw error;
+          app.alerts.show({ type: 'error' }, app.translator.trans('linkrobins-chirp.admin.channels_exhausted'));
+        },
       });
       this.query = '';
       this.selected = null;
@@ -124,9 +133,21 @@ export default class ChirpChannelsPanel extends Component {
   view(): Mithril.Children {
     const t = (k: string) => app.translator.trans('linkrobins-chirp.admin.' + k);
 
+    const full = this.slots.total > 0 && this.slots.used >= this.slots.total;
+
     return m('.Form-group.ChirpChannels', [
       m('label', t('channels_label')),
       m('.helpText', t('channels_help')),
+      // Occupancy: each purchased channel powers one standing voice channel.
+      this.loading
+        ? null
+        : m(
+            'p.ChirpChannels-slots',
+            app.translator.trans('linkrobins-chirp.admin.channels_slots', {
+              used: this.slots.used,
+              total: this.slots.total,
+            })
+          ),
 
       this.loading
         ? m('p.ChirpChannels-empty', '…')
@@ -194,10 +215,11 @@ export default class ChirpChannelsPanel extends Component {
         ]),
         m(
           Button,
-          { className: 'Button Button--primary', loading: this.busy, disabled: !this.selected, onclick: () => this.designate() },
+          { className: 'Button Button--primary', loading: this.busy, disabled: !this.selected || full, onclick: () => this.designate() },
           t('channels_add')
         ),
       ]),
+      full ? m('p.helpText.ChirpChannels-full', t('channels_exhausted')) : null,
     ]);
   }
 }

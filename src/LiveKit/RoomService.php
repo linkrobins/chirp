@@ -3,13 +3,17 @@
 namespace LinkRobins\Chirp\LiveKit;
 
 use GuzzleHttp\Client;
+use LinkRobins\Chirp\Channel;
 use Psr\Log\LoggerInterface;
 
 /**
- * Thin client for the two LiveKit server APIs the extension needs (twirp over
- * HTTPS on the same signaling host): counting current publishers for speaker-
- * slot enforcement, and deleting the room when the host ends it (disconnects
- * every participant immediately).
+ * Thin client for the LiveKit server APIs the extension needs (twirp over
+ * HTTPS on the signaling host): counting current publishers for speaker-
+ * slot enforcement, moderation, and deleting the room when the host ends it
+ * (disconnects every participant immediately).
+ *
+ * Multi-channel: every call is scoped to the Channel the room lives on —
+ * different channels are different servers with different credentials.
  *
  * Fail-soft on reads: if the count call fails we return null and the caller
  * decides — for slot enforcement that means fail-CLOSED (treat as full) so a
@@ -25,9 +29,9 @@ class RoomService
     }
 
     /** Number of participants currently allowed to publish, or null on failure. */
-    public function publisherCount(string $room): ?int
+    public function publisherCount(Channel $channel, string $room): ?int
     {
-        $data = $this->call('ListParticipants', $room, ['room' => $room]);
+        $data = $this->call($channel, 'ListParticipants', $room, ['room' => $room]);
         if ($data === null) {
             return null;
         }
@@ -43,16 +47,16 @@ class RoomService
     }
 
     /** Best-effort room delete — kicks every participant. */
-    public function deleteRoom(string $room): void
+    public function deleteRoom(Channel $channel, string $room): void
     {
-        $this->call('DeleteRoom', $room, ['room' => $room]);
+        $this->call($channel, 'DeleteRoom', $room, ['room' => $room]);
     }
 
     /** Stage moderation: revoke the publish grant — the server unpublishes
      *  their tracks and the client can't re-take the mic. */
-    public function revokePublish(string $room, string $identity): void
+    public function revokePublish(Channel $channel, string $room, string $identity): void
     {
-        $this->call('UpdateParticipant', $room, [
+        $this->call($channel, 'UpdateParticipant', $room, [
             'room'       => $room,
             'identity'   => $identity,
             'permission' => ['can_subscribe' => true, 'can_publish' => false, 'can_publish_data' => true],
@@ -60,9 +64,9 @@ class RoomService
     }
 
     /** Stage moderation: remove a participant from the room entirely. */
-    public function removeParticipant(string $room, string $identity): void
+    public function removeParticipant(Channel $channel, string $room, string $identity): void
     {
-        $this->call('RemoveParticipant', $room, ['room' => $room, 'identity' => $identity]);
+        $this->call($channel, 'RemoveParticipant', $room, ['room' => $room, 'identity' => $identity]);
     }
 
     /**
@@ -72,16 +76,16 @@ class RoomService
      * unmute themselves and keep talking like a person, and a repeat
      * offender gets kicked instead.
      */
-    public function muteAudio(string $room, string $identity): void
+    public function muteAudio(Channel $channel, string $room, string $identity): void
     {
-        $data = $this->call('ListParticipants', $room, ['room' => $room]);
+        $data = $this->call($channel, 'ListParticipants', $room, ['room' => $room]);
         foreach (($data['participants'] ?? []) as $p) {
             if (($p['identity'] ?? '') !== $identity) {
                 continue;
             }
             foreach (($p['tracks'] ?? []) as $track) {
                 if (strtoupper((string) ($track['type'] ?? '')) === 'AUDIO' && !empty($track['sid'])) {
-                    $this->call('MutePublishedTrack', $room, [
+                    $this->call($channel, 'MutePublishedTrack', $room, [
                         'room'      => $room,
                         'identity'  => $identity,
                         'track_sid' => $track['sid'],
@@ -96,9 +100,9 @@ class RoomService
      * Is this room actually live on the server? true/false, or null when the
      * API can't answer (caller decides the failure posture).
      */
-    public function roomExists(string $room): ?bool
+    public function roomExists(Channel $channel, string $room): ?bool
     {
-        $data = $this->call('ListRooms', $room, ['names' => [$room]]);
+        $data = $this->call($channel, 'ListRooms', $room, ['names' => [$room]]);
         if ($data === null) {
             return null;
         }
@@ -118,17 +122,17 @@ class RoomService
      * LiveKit side; fail-soft here — a failed call means the room simply
      * starts unrecorded, never that going live breaks.
      */
-    public function createRoom(string $room, array $metadata): void
+    public function createRoom(Channel $channel, string $room, array $metadata): void
     {
-        $this->call('CreateRoom', $room, [
+        $this->call($channel, 'CreateRoom', $room, [
             'name'     => $room,
             'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES),
         ]);
     }
 
-    protected function call(string $method, string $room, array $body): ?array
+    protected function call(Channel $channel, string $method, string $room, array $body): ?array
     {
-        $base = $this->tokens->httpEndpoint();
+        $base = $channel->httpEndpoint();
         if ($base === '') {
             return null;
         }
@@ -137,7 +141,7 @@ class RoomService
             $response = $this->http->post($base . '/twirp/livekit.RoomService/' . $method, [
                 'json'            => $body,
                 'headers'         => [
-                    'Authorization' => 'Bearer ' . $this->tokens->forRoomAdmin($room),
+                    'Authorization' => 'Bearer ' . $this->tokens->forRoomAdmin($channel, $room),
                     'Accept'        => 'application/json',
                 ],
                 'connect_timeout' => 3,

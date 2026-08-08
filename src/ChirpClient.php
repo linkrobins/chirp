@@ -62,6 +62,11 @@ class ChirpClient
             }
 
             return [
+                // Stable service-side channel name; survives key rotation so
+                // room→channel bindings do too. Older services may not send
+                // it — fall back to a digest of the endpoint, which is also
+                // stable per channel.
+                'handle'        => (string) (Arr::get($data, 'handle') ?: substr(sha1((string) $data['endpoint']), 0, 12)),
                 'endpoint'      => (string) $data['endpoint'],
                 'api_key'       => (string) $data['api_key'],
                 'api_secret'    => (string) $data['api_secret'],
