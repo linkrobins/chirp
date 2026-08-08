@@ -1,12 +1,14 @@
 {
     "name": "linkrobins/flarum-chirp",
-    "description": "Chirp — live audio rooms for Flarum. Attach a live audio stage to any discussion: unlimited listeners, speakers on stage, and the thread is the chat.",
+    "description": "Live audio for Flarum: go live on any discussion or run standing voice channels — unlimited listeners, scheduled shows, live threads, recordings, and the conversation stays when the room ends.",
     "keywords": [
-        "voice",
         "flarum",
         "audio",
         "voice",
         "live",
+        "voice-channels",
+        "livekit",
+        "webrtc",
         "chirp"
     ],
     "type": "flarum-extension",
