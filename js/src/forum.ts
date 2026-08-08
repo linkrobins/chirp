@@ -43,7 +43,10 @@ app.initializers.add('linkrobins-chirp', () => {
   // tags and last-reply line — so you can listen straight from the index.
   extend('flarum/forum/components/DiscussionListItem', 'view', function (this: any, vnode: any) {
     const discussion = this.attrs.discussion;
-    if (!discussion?.attribute?.('chirpIsLive')) return;
+    // The list payload is CACHED across navigation, so a row's chirpIsLive
+    // can be stale — but the room you're CONNECTED to is definitionally
+    // live, and its row must always carry your controls on the index.
+    if (!discussion?.attribute?.('chirpIsLive') && !state.inDiscussion(Number(discussion?.id?.() || 0))) return;
 
     // Append to the ROW (not its inner content box): a plain block child of
     // the row inherits the row's own padding box on both sides, so the

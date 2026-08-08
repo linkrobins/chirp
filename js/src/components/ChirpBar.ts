@@ -32,7 +32,10 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.oncreate(vnode);
-    this.tracker.start();
+    // The tracker publishes the html.chirp-live marker + composer offset —
+    // docked-bar machinery. An INLINE row bar sits in flow and must not
+    // claim it (it would lift the dock and pad the page for nothing).
+    if (!this.attrs.inline) this.tracker.start();
 
     // Host in hand mode: hydrate hands raised before this bar mounted (the
     // data channel only covers hands raised while we're watching). Voice
@@ -46,12 +49,12 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
 
   onupdate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.onupdate(vnode);
-    this.tracker.update();
+    if (!this.attrs.inline) this.tracker.update();
   }
 
   onremove(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
     super.onremove(vnode);
-    this.tracker.stop();
+    if (!this.attrs.inline) this.tracker.stop();
   }
 
   view(): Mithril.Children {
