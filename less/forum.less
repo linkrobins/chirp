@@ -276,12 +276,6 @@ html.chirp-blend {
   }
 }
 
-.ChirpBar-waiting {
-  color: var(--muted-color);
-  font-size: calc(13px * var(--lr-ui-scale, 1));
-  font-style: italic;
-}
-
 .ChirpBar-count {
   display: inline-flex;
   align-items: center;
@@ -359,11 +353,6 @@ html.chirp-blend {
   html.chirp-composer-full .ChirpBar {
     opacity: 0;
     pointer-events: none;
-  }
-
-  // The waveform already says "waiting"; the sentence just eats a row.
-  .ChirpBar-waiting {
-    display: none;
   }
 
   .ChirpBar-count {

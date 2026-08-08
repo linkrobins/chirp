@@ -69,7 +69,6 @@ linkrobins-chirp:
     connecting: Connecting…
     listeners: "{count, plural, one {# listening} other {# listening}}"
     live_banner: This discussion is live right now.
-    waiting_for_speakers: Waiting for someone to speak…
     speaker_muted: "{name} (muted)"
     ended_toast: The room has ended.
     confirm_end: End the room for everyone?
@@ -80,7 +79,6 @@ linkrobins-chirp:
     reconnecting: Reconnecting…
     muted_hint: You're muted
     voice_badge: VOICE
-    voice_empty: Nobody here yet — hop in.
     unstage: Remove from stage
     kick: Remove from room
     confirm_kick: Remove this person from the room entirely? They can rejoin as a listener.
