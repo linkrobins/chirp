@@ -281,13 +281,25 @@ export default class ChirpState {
         touch();
       })
       .on(RoomEvent.DataReceived, (payload: Uint8Array) => this.onData(payload))
-      // Wi-Fi blip: say so instead of letting the room just go quiet.
+      // Wi-Fi blip / server hiccup: say so instead of letting the room just
+      // go quiet. SignalReconnecting is the EARLY signal (fires while
+      // Reconnecting may not, e.g. a media-server restart) — treat any
+      // non-connected transition as "reconnecting" and let the state-change
+      // event clear it when the session is back.
+      .on(RoomEvent.SignalReconnecting, () => {
+        this.reconnecting = true;
+        touch();
+      })
       .on(RoomEvent.Reconnecting, () => {
         this.reconnecting = true;
         touch();
       })
       .on(RoomEvent.Reconnected, () => {
         this.reconnecting = false;
+        touch();
+      })
+      .on(RoomEvent.ConnectionStateChanged, (s: string) => {
+        this.reconnecting = s === 'reconnecting' || s === 'signalReconnecting';
         touch();
       })
       .on(RoomEvent.Disconnected, () => {
@@ -355,9 +367,9 @@ export default class ChirpState {
         analyser.getFloatTimeDomainData(buf);
         let sum = 0;
         for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-        const loud = Math.sqrt(sum / buf.length) > 0.04;
+        const loud = Math.sqrt(sum / buf.length) > 0.015;
         this.mutedHot = loud ? this.mutedHot + 1 : 0;
-        const show = this.mutedHot >= 3; // ~1s of sustained voice
+        const show = this.mutedHot >= 4; // ~1.2s of sustained voice
         if (show !== this.mutedTalking) {
           this.mutedTalking = show;
           m.redraw();
