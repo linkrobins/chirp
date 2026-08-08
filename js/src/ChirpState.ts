@@ -4,7 +4,7 @@ import m from 'mithril';
 // webpack chunk, and Flarum's asset publisher only copies the named
 // forum.js/admin.js bundles — the chunk 404s at runtime and the join
 // spinner hangs forever.
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, createAudioAnalyser } from 'livekit-client';
 
 export interface Speaker {
   key: string;
@@ -53,6 +53,15 @@ export default class ChirpState {
   connecting = false;
   canPublish = false;
   muted = false;
+
+  /** Network blip: LiveKit is re-establishing the session. */
+  reconnecting = false;
+
+  /** Talking into a muted mic right now (sustained voice on the muted track). */
+  mutedTalking = false;
+  private mutedAnalyser: { calculateVolume: () => number; cleanup: () => Promise<void> | void } | null = null;
+  private mutedTimer: ReturnType<typeof setInterval> | null = null;
+  private mutedHot = 0;
 
   /** True while the page is being torn down. livekit-client disconnects the
    *  room itself on page leave ("Page leave detected"), which fires our
@@ -272,6 +281,15 @@ export default class ChirpState {
         touch();
       })
       .on(RoomEvent.DataReceived, (payload: Uint8Array) => this.onData(payload))
+      // Wi-Fi blip: say so instead of letting the room just go quiet.
+      .on(RoomEvent.Reconnecting, () => {
+        this.reconnecting = true;
+        touch();
+      })
+      .on(RoomEvent.Reconnected, () => {
+        this.reconnecting = false;
+        touch();
+      })
       .on(RoomEvent.Disconnected, () => {
         this.cleanup();
         m.redraw();
@@ -303,7 +321,51 @@ export default class ChirpState {
     if (!this.room || !this.canPublish) return;
     await this.room.localParticipant.setMicrophoneEnabled(!muted);
     this.muted = muted;
+    if (muted) this.startMutedMonitor();
+    else this.stopMutedMonitor();
     m.redraw();
+  }
+
+  /**
+   * The classic live-audio failure: talking into a muted mic. LiveKit keeps
+   * capturing the (unpublished) track while muted, so a local analyser can
+   * tell when someone is speaking and the bar shows "You're muted". Entirely
+   * best-effort — if the track was stopped, there's just no hint.
+   */
+  private startMutedMonitor(): void {
+    this.stopMutedMonitor();
+    try {
+      const pub = [...(this.room?.localParticipant?.audioTrackPublications?.values?.() ?? [])][0] as any;
+      const track = pub?.track;
+      if (!track || track.mediaStreamTrack?.readyState !== 'live') return;
+
+      this.mutedAnalyser = createAudioAnalyser(track);
+      this.mutedTimer = setInterval(() => {
+        const loud = (this.mutedAnalyser?.calculateVolume() ?? 0) > 0.08;
+        this.mutedHot = loud ? this.mutedHot + 1 : 0;
+        const show = this.mutedHot >= 3; // ~1s of sustained voice
+        if (show !== this.mutedTalking) {
+          this.mutedTalking = show;
+          m.redraw();
+        }
+      }, 300);
+    } catch {
+      // No analyser, no hint.
+    }
+  }
+
+  private stopMutedMonitor(): void {
+    if (this.mutedTimer) {
+      clearInterval(this.mutedTimer);
+      this.mutedTimer = null;
+    }
+    void this.mutedAnalyser?.cleanup?.();
+    this.mutedAnalyser = null;
+    this.mutedHot = 0;
+    if (this.mutedTalking) {
+      this.mutedTalking = false;
+      m.redraw();
+    }
   }
 
   async leave(): Promise<void> {
@@ -330,6 +392,8 @@ export default class ChirpState {
 
   private cleanup(): void {
     if (!this.unloading) this.clearResume();
+    this.stopMutedMonitor();
+    this.reconnecting = false;
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
     this.active = new Set();
