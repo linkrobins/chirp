@@ -84,6 +84,7 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
             ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge'))
             : m('span.ChirpBadge', t('live_badge')),
           joined && state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
+          joined && state.reconnecting ? m('span.ChirpBadge.ChirpBadge--reconnecting', t('reconnecting')) : null,
           m(
             '.ChirpWave',
             { 'aria-hidden': 'true' },
@@ -179,6 +180,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       );
     } else {
       if (state.canPublish) {
+        if (state.muted && state.mutedTalking) {
+          actions.push(m('span.ChirpMutedHint', t('muted_hint')));
+        }
         actions.push(
           m(
             Button,

@@ -651,6 +651,35 @@ html.chirp-blend {
   }
 }
 
+// Network blip: amber, slow pulse — "hold on", not "on air".
+.ChirpBadge--reconnecting {
+  background: #e8b339;
+  animation: chirp-reconnect-pulse 1.2s ease-in-out infinite;
+
+  &::before {
+    animation: none;
+  }
+}
+
+@keyframes chirp-reconnect-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+// Talking into a muted mic.
+.ChirpMutedHint {
+  color: var(--chirp-hot);
+  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-weight: 700;
+  white-space: nowrap;
+  animation: chirp-reconnect-pulse 1s ease-in-out infinite;
+}
+
 // ── Participants modal (the bar's ⋯ button) ─────────────────────────────────
 // The bar shows only whoever is talking; the full roster — and the host's
 // moderation — lives in a native modal.

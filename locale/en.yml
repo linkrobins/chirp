@@ -77,6 +77,8 @@ linkrobins-chirp:
     join_channel: Join
     in_channel: "{count, plural, one {# in the channel} other {# in the channel}}"
     hands_heading: Hands raised
+    reconnecting: Reconnecting…
+    muted_hint: You're muted
     voice_badge: VOICE
     voice_empty: Nobody here yet — hop in.
     unstage: Remove from stage

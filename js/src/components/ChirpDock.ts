@@ -114,7 +114,11 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
 
     return m('.ChirpDock', { className: state.anyoneSpeaking ? 'is-active' : '' }, [
       m('.ChirpDock-main', [
-        mode === 'persistent' ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge')) : m('span.ChirpBadge', t('live_badge')),
+        state.reconnecting
+          ? m('span.ChirpBadge.ChirpBadge--reconnecting', t('reconnecting'))
+          : mode === 'persistent'
+            ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge'))
+            : m('span.ChirpBadge', t('live_badge')),
         m(
           '.ChirpWave',
           { 'aria-hidden': 'true' },
@@ -126,6 +130,7 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
       ]),
       m('.ChirpDock-actions', [
         speakers.length ? m('span.ChirpDock-count', String(state.listenerCount())) : null,
+        state.canPublish && state.muted && state.mutedTalking ? m('span.ChirpMutedHint', t('muted_hint')) : null,
         state.canPublish
           ? m(
               Button,
