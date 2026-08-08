@@ -78,6 +78,15 @@ linkrobins-chirp:
     hands_heading: Hands raised
     reconnecting: Reconnecting…
     muted_hint: You're muted
+    schedule_live: Schedule live
+    schedule_title: Schedule a live room
+    schedule_label: When do you go live?
+    schedule_help: Followers of this discussion get a heads-up, and the discussion shows a countdown until you go live.
+    schedule_submit: Schedule
+    schedule_cancel: Cancel
+    confirm_cancel_schedule: Withdraw the scheduled room? The countdown disappears for everyone.
+    live_in: "LIVE in {time}"
+    starting_soon: Starting soon…
     voice_badge: VOICE
     unstage: Remove from stage
     kick: Remove from room
@@ -90,9 +99,11 @@ linkrobins-chirp:
     roster_gone: You left the room.
     settings:
       notify_room_started_label: Someone goes live in a discussion I follow
+      notify_room_scheduled_label: Someone schedules a live room in a discussion I follow
     notifications:
       went_live_text: "{user} went live"
       voice_opened_text: "{user} opened a voice channel"
+      scheduled_text: "{user} scheduled a live room"
     raise_hand: Raise hand
     hand_pending: Hand raised…
     hand_declined: Not this time

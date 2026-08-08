@@ -88,13 +88,16 @@ return [
         ->post('/chirp/rooms/{id:\d+}/hand', 'chirp.rooms.hand', \LinkRobins\Chirp\Http\RaiseHandController::class)
         ->post('/chirp/rooms/{id:\d+}/hand/{userId:\d+}', 'chirp.rooms.hand-resolve', \LinkRobins\Chirp\Http\ResolveHandController::class)
         ->get('/chirp/rooms/{id:\d+}/hands', 'chirp.rooms.hands', \LinkRobins\Chirp\Http\ListHandsController::class)
-        ->get('/chirp/channels', 'chirp.channels.list', \LinkRobins\Chirp\Http\ListChannelsController::class),
+        ->get('/chirp/channels', 'chirp.channels.list', \LinkRobins\Chirp\Http\ListChannelsController::class)
+        ->post('/chirp/rooms/{id:\d+}/schedule', 'chirp.rooms.schedule', \LinkRobins\Chirp\Http\ScheduleRoomController::class)
+        ->delete('/chirp/rooms/{id:\d+}/schedule', 'chirp.rooms.schedule-cancel', \LinkRobins\Chirp\Http\CancelScheduleController::class),
 
 
     // Followers hear about rooms opening (alert by default; users can add
     // email in their own preferences).
     (new Extend\Notification())
-        ->type(\LinkRobins\Chirp\Notification\RoomStartedBlueprint::class, ['alert']),
+        ->type(\LinkRobins\Chirp\Notification\RoomStartedBlueprint::class, ['alert'])
+        ->type(\LinkRobins\Chirp\Notification\RoomScheduledBlueprint::class, ['alert']),
 
     // The delivery receiver is a server-to-server webhook (HMAC-signed by
     // the service) — Flarum's CSRF layer would 400 it before our auth runs.

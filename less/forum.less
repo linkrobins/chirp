@@ -656,6 +656,28 @@ html.chirp-blend {
   }
 }
 
+// ── The countdown bar for a scheduled room ─────────────────────────────────
+// In-flow everywhere: a countdown doesn't need to chase you down the page.
+.ChirpBar--schedule {
+  position: static !important;
+
+  .ChirpSchedule-when {
+    color: var(--muted-color);
+    font-size: calc(13px * var(--lr-ui-scale, 1));
+    white-space: nowrap;
+  }
+}
+
+// Cool accent, no pulse: an announcement, not an event in progress.
+.ChirpBadge--schedule {
+  background: var(--chirp-cool);
+  white-space: nowrap;
+
+  &::before {
+    animation: none;
+  }
+}
+
 // Network blip: amber, slow pulse — "hold on", not "on air".
 .ChirpBadge--reconnecting {
   background: #e8b339;

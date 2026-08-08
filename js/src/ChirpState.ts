@@ -252,8 +252,14 @@ export default class ChirpState {
         if (speakers.length) this.lastActive = String(speakers[0].identity);
         touch();
       })
-      .on(RoomEvent.ParticipantConnected, touch)
-      .on(RoomEvent.ParticipantDisconnected, touch)
+      .on(RoomEvent.ParticipantConnected, () => {
+        this.cue('join');
+        touch();
+      })
+      .on(RoomEvent.ParticipantDisconnected, () => {
+        this.cue('leave');
+        touch();
+      })
       .on(RoomEvent.TrackMuted, touch)
       .on(RoomEvent.TrackUnmuted, touch)
       .on(RoomEvent.TrackPublished, touch)
@@ -411,6 +417,44 @@ export default class ChirpState {
     }
   }
 
+  // ── Sound cues ────────────────────────────────────────────────────────────
+  // Discord texture: a soft blip when someone joins/leaves the room you're
+  // in, a two-note ping for the host when a hand goes up. Tones are
+  // generated (no assets) and QUIET; everything is fail-soft.
+
+  private cueCtx: AudioContext | null = null;
+
+  private cue(kind: 'join' | 'leave' | 'hand'): void {
+    try {
+      if (!this.room) return;
+      this.cueCtx = this.cueCtx || new AudioContext();
+      const ctx = this.cueCtx;
+      if (ctx.state === 'suspended') return; // no gesture yet — skip, never queue
+
+      const note = (freq: number, at: number, dur = 0.09, vol = 0.055) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + at);
+        gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + at + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + at);
+        osc.stop(ctx.currentTime + at + dur + 0.05);
+      };
+
+      if (kind === 'join') note(740, 0);
+      else if (kind === 'leave') note(494, 0);
+      else {
+        note(880, 0, 0.08);
+        note(1175, 0.11, 0.12);
+      }
+    } catch {
+      // Cues are sugar.
+    }
+  }
+
   private ensureAudioPlayback(): void {
     const room = this.room;
     if (!room || room.canPlaybackAudio !== false) return;
@@ -424,6 +468,8 @@ export default class ChirpState {
   private cleanup(): void {
     if (!this.unloading) this.clearResume();
     this.stopMutedMonitor();
+    void this.cueCtx?.close().catch(() => {});
+    this.cueCtx = null;
     this.reconnecting = false;
     this.audioEls.forEach((el) => el.remove());
     this.audioEls = [];
@@ -492,6 +538,10 @@ export default class ChirpState {
       case 'hand':
         if (!this.hands.some((h) => h.userId === Number(msg.user))) {
           this.hands.push({ userId: Number(msg.user), name: String(msg.name || '?') });
+          // Only whoever can act on the queue gets the ping.
+          if (app.store.getById('discussions', String(this.discussionId))?.attribute?.('canChirpStart')) {
+            this.cue('hand');
+          }
         }
         break;
       case 'hand-ok':

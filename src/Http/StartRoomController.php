@@ -16,6 +16,7 @@ use LinkRobins\Chirp\LiveKit\AccessToken;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Notification\RoomStartedBlueprint;
 use LinkRobins\Chirp\Recording;
+use LinkRobins\Chirp\Schedule;
 use LinkRobins\Chirp\Room;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -105,6 +106,13 @@ class StartRoomController implements RequestHandlerInterface
                 'speak_policy'  => in_array($p = (string) $this->settings->get('linkrobins-chirp.default-speak-policy', 'open'), ['open', 'hand', 'op'], true) ? $p : 'open',
             ]);
         });
+
+        // The show the schedule announced is now ON — consume it.
+        try {
+            Schedule::query()->where('discussion_id', $discussion->id)->delete();
+        } catch (\Throwable) {
+            // Never let schedule bookkeeping block going live.
+        }
 
         // Recording: pre-create the LiveKit room so its metadata carries the
         // record flag into the service's room_started webhook, and stash a
