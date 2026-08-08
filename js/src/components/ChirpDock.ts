@@ -25,8 +25,29 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
    *  don't flash it. Hide stays instant. */
   private barGoneSince: number | null = null;
   private wakePending = false;
+  private settlePending = false;
 
   private static readonly SHOW_DELAY_MS = 600;
+
+  /**
+   * The dock is its own mithril root and redraws BEFORE the main app root —
+   * so during e.g. a discussion-list load, roomBarOnScreen() runs against a
+   * DOM that doesn't hold the row bar yet, and nothing re-asks until a
+   * scroll. Re-check one frame after the redraw settles and flip if the
+   * verdict changed.
+   */
+  private scheduleSettleCheck(): void {
+    if (this.settlePending) return;
+    this.settlePending = true;
+    requestAnimationFrame(() => {
+      this.settlePending = false;
+      const visible = this.roomBarOnScreen();
+      if (visible !== this.lastVisible) {
+        this.lastVisible = visible;
+        m.redraw();
+      }
+    });
+  }
 
   oncreate(vnode: Mithril.VnodeDOM<ChirpDockAttrs>) {
     super.oncreate(vnode);
@@ -84,6 +105,8 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
       this.barGoneSince = null;
       return null;
     }
+
+    this.scheduleSettleCheck();
 
     // Stand down wherever the room's own toolbar is actually VISIBLE — its
     // discussion page, or its row in the list. Presence isn't enough: Flarum
