@@ -37,6 +37,19 @@ return [
 
     new Extend\Locales(__DIR__ . '/locale'),
 
+    // Recordings live on their own PRIVATE disk (no 'url' key — they are
+    // never publicly addressable; playback goes through the visibility-gated
+    // stream endpoint). Registering a disk instead of touching the storage
+    // path with native fopen/unlink is what makes the backend swappable —
+    // an operator can point this at S3 with a driver, and the code above it
+    // doesn't change (v1.1.4 review, findings 1-3; NB Flarum ships no
+    // 'local' disk, so the review's Storage::disk('local') would not have
+    // resolved — a registered disk is the Flarum-2 way).
+    (new Extend\Filesystem())
+        ->disk('chirp-recordings', function (\Flarum\Foundation\Paths $paths) {
+            return ['root' => $paths->storage . '/chirp-recordings'];
+        }),
+
     // Service URL is admin-overridable for testing; the channel keys + resolved
     // credentials (the 'channels' JSON) are server-only settings, never
     // serialized to the forum. 'connected' is the ONLY value the forum

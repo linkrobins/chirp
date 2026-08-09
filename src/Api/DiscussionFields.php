@@ -2,6 +2,7 @@
 
 namespace LinkRobins\Chirp\Api;
 
+use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
 use LinkRobins\Chirp\Recording;
@@ -156,9 +157,9 @@ class DiscussionFields
                 }),
 
             Schema\Arr::make('chirpRecordings')
-                ->get(function ($discussion) {
+                ->get(function ($discussion, $context) {
                     try {
-                        return $this->recordingsFor((int) $discussion->id);
+                        return $this->recordingsFor((int) $discussion->id, $context);
                     } catch (\Throwable) {
                         return [];
                     }
@@ -167,35 +168,52 @@ class DiscussionFields
     }
 
     /**
-     * Delivered recordings for one discussion — the front end renders them
-     * under the FIRST post ("the discussion keeps the show").
+     * Delivered recordings, keyed by discussion.
      *
-     * Memoized PER DISCUSSION rather than bulk-loading the table: the old
-     * shape ran one `where(status, delivered)` with no bound, so every
-     * discussion-list response read every recording the forum had ever
-     * stored — cheap at launch, linear in total recordings forever after.
-     * This is one indexed point-lookup per discussion on the page instead
-     * (see the (discussion_id, status) index), which is bounded by page size
-     * no matter how large the archive gets, and still never N+1 within a
-     * request.
+     * Loaded for EVERY discussion in the response in one `whereIn`, primed
+     * from the context's search results the first time any row asks. That
+     * threads between the two failure modes the reviews each caught: the
+     * original shape read the whole delivered table on every list response
+     * (unbounded in the size of the archive), and a naive per-discussion
+     * lookup is one query per row. This is a single query bounded by page
+     * size, over the (discussion_id, status) index.
+     *
+     * A single-discussion response has no search results, so it falls back
+     * to a point lookup for the one id — same query, no collection to prime
+     * from.
      */
-    private function recordingsFor(int $discussionId): array
+    private function recordingsFor(int $discussionId, Context $context): array
     {
-        if (isset($this->recordings[$discussionId])) {
-            return $this->recordings[$discussionId];
+        if (!array_key_exists($discussionId, $this->recordings)) {
+            $ids = $context->getSearchResults()?->getResults()->pluck('id')->all() ?? [];
+            $ids = array_values(array_unique(array_map('intval', $ids)));
+
+            if (!in_array($discussionId, $ids, true)) {
+                $ids[] = $discussionId;
+            }
+
+            // Prime a null entry per id so a discussion with no recordings
+            // is a cache hit rather than a repeat query.
+            foreach ($ids as $id) {
+                $this->recordings[$id] ??= [];
+            }
+
+            $rows = Recording::query()
+                ->whereIn('discussion_id', $ids)
+                ->where('status', 'delivered')
+                ->orderBy('id')
+                ->get(['id', 'discussion_id', 'duration_seconds', 'delivered_at']);
+
+            foreach ($rows as $row) {
+                $this->recordings[(int) $row->discussion_id][] = [
+                    'id'         => (int) $row->id,
+                    'duration'   => (int) $row->duration_seconds,
+                    'recordedAt' => optional($row->delivered_at)->toIso8601String(),
+                ];
+            }
         }
 
-        $rows = Recording::query()
-            ->where('discussion_id', $discussionId)
-            ->where('status', 'delivered')
-            ->orderBy('id')
-            ->get(['id', 'duration_seconds', 'delivered_at']);
-
-        return $this->recordings[$discussionId] = $rows->map(fn ($row) => [
-            'id'         => (int) $row->id,
-            'duration'   => (int) $row->duration_seconds,
-            'recordedAt' => optional($row->delivered_at)->toIso8601String(),
-        ])->all();
+        return $this->recordings[$discussionId] ?? [];
     }
 
     /** Upcoming (grace-windowed) schedules, one query per request. */

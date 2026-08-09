@@ -3,8 +3,8 @@
 namespace LinkRobins\Chirp\Http;
 
 use Flarum\Discussion\Discussion;
-use Flarum\Foundation\Paths;
 use Flarum\Http\RequestUtil;
+use Illuminate\Contracts\Filesystem\Factory;
 use Laminas\Diactoros\Response;
 use Laminas\Diactoros\Stream;
 use LinkRobins\Chirp\Recording;
@@ -25,7 +25,7 @@ class StreamRecordingController implements RequestHandlerInterface
 {
     private const WINDOW = 8 * 1024 * 1024;
 
-    public function __construct(protected Paths $paths)
+    public function __construct(protected Factory $filesystem)
     {
     }
 
@@ -34,7 +34,7 @@ class StreamRecordingController implements RequestHandlerInterface
         $actor = RequestUtil::getActor($request);
 
         $recording = Recording::query()
-            ->where('id', (int) ($request->getAttribute('routeParameters')['id'] ?? 0))
+            ->where('id', (int) \Illuminate\Support\Arr::get($request->getQueryParams(), 'id'))
             ->where('status', 'delivered')
             ->first();
         if (!$recording || !$recording->path || str_contains($recording->path, '/')) {
@@ -44,11 +44,11 @@ class StreamRecordingController implements RequestHandlerInterface
         // Visibility gate — the reason this endpoint exists at all.
         Discussion::whereVisibleTo($actor)->findOrFail($recording->discussion_id);
 
-        $file = $this->paths->storage . '/chirp-recordings/' . $recording->path;
-        $size = @filesize($file);
-        if ($size === false) {
+        $disk = $this->filesystem->disk('chirp-recordings');
+        if (!$disk->exists($recording->path)) {
             return new Response\EmptyResponse(404);
         }
+        $size = (int) $disk->size($recording->path);
 
         $start = 0;
         $end   = min($size, self::WINDOW) - 1;
@@ -61,11 +61,22 @@ class StreamRecordingController implements RequestHandlerInterface
             $end = min($m[2] !== '' ? (int) $m[2] : $size - 1, $start + self::WINDOW - 1, $size - 1);
         }
 
-        $fh = fopen($file, 'rb');
-        fseek($fh, $start);
+        // readStream, not read: the whole point of the window is never
+        // holding a multi-hour file in memory to serve 8 MB of it.
+        $source = $disk->readStream($recording->path);
+
+        // The exists() check above is not a guarantee — a concurrent delete
+        // between there and here leaves $source false, and seeking/reading a
+        // false handle emits warnings into the response before headers flush
+        // (v1.1.4 review, finding 5).
+        if (!is_resource($source)) {
+            return new Response\EmptyResponse(404);
+        }
+
+        fseek($source, $start);
         $body = new Stream('php://temp', 'wb+');
-        $body->write((string) fread($fh, $end - $start + 1));
-        fclose($fh);
+        $body->write((string) fread($source, $end - $start + 1));
+        fclose($source);
         $body->rewind();
 
         $response = (new Response($body, $isRange || $end < $size - 1 ? 206 : 200))

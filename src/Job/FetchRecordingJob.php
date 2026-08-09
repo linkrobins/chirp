@@ -3,10 +3,10 @@
 namespace LinkRobins\Chirp\Job;
 
 use Carbon\Carbon;
-use Flarum\Foundation\Paths;
 use Flarum\Queue\AbstractJob;
 use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
+use Illuminate\Contracts\Filesystem\Factory;
 use Illuminate\Support\Str;
 use LinkRobins\Chirp\Recording;
 use Psr\Http\Message\ResponseInterface;
@@ -54,10 +54,11 @@ class FetchRecordingJob extends AbstractJob
 
     public function handle(
         Client $http,
-        Paths $paths,
+        Factory $filesystem,
         SettingsRepositoryInterface $settings,
         LoggerInterface $log,
     ): void {
+        $disk = $filesystem->disk('chirp-recordings');
         /** @var Recording|null $recording */
         $recording = Recording::query()->find($this->recordingId);
 
@@ -82,13 +83,13 @@ class FetchRecordingJob extends AbstractJob
             return;
         }
 
-        $dir = $paths->storage . '/chirp-recordings';
-        if (!is_dir($dir) && !mkdir($dir, 0o755, true) && !is_dir($dir)) {
-            throw new \RuntimeException('Chirp: recording storage directory is not writable: ' . $dir);
-        }
-
         $filename = Str::lower(Str::random(40)) . '.m4a';
-        $target = $dir . '/' . $filename;
+
+        // Guzzle streams to an absolute path, so the disk hands us its own
+        // root rather than us rebuilding the path from Paths. `makeDirectory`
+        // is a no-op when it already exists.
+        $disk->makeDirectory('');
+        $target = $disk->path($filename);
 
         try {
             $http->get($this->downloadUrl, [
@@ -106,7 +107,7 @@ class FetchRecordingJob extends AbstractJob
                 },
             ]);
         } catch (\Throwable $e) {
-            $this->cleanUp($target, $log);
+            $this->cleanUp($disk, $filename, $log);
 
             // Rethrow so the queue applies $backoff and, after $tries, calls
             // failed() — swallowing here would drop the recording silently.
@@ -115,9 +116,9 @@ class FetchRecordingJob extends AbstractJob
 
         // A transfer with no Content-Length can still overshoot the cap; the
         // file on disk is the last word.
-        $actual = (int) @filesize($target);
+        $actual = $disk->exists($filename) ? (int) $disk->size($filename) : 0;
         if ($actual > $maxBytes) {
-            $this->cleanUp($target, $log);
+            $this->cleanUp($disk, $filename, $log);
             $log->warning('Chirp: recording rejected, downloaded size over cap', [
                 'recording' => $recording->id,
                 'bytes'     => $actual,
@@ -132,7 +133,7 @@ class FetchRecordingJob extends AbstractJob
         // one finished while this was downloading, throw this copy away rather
         // than overwriting a good file and orphaning theirs on disk.
         if ($recording->fresh()?->status === 'delivered') {
-            $this->cleanUp($target, $log);
+            $this->cleanUp($disk, $filename, $log);
 
             return;
         }
@@ -160,12 +161,12 @@ class FetchRecordingJob extends AbstractJob
             ->update(['status' => 'pending']);
     }
 
-    private function cleanUp(string $target, LoggerInterface $log): void
+    private function cleanUp(\Illuminate\Contracts\Filesystem\Filesystem $disk, string $filename, LoggerInterface $log): void
     {
-        if (is_file($target) && !@unlink($target)) {
-            // Not fatal — but a partial file nobody deletes is how a disk
-            // fills up quietly.
-            $log->warning('Chirp: could not remove a partial recording download', ['path' => $target]);
+        // Not fatal — but a partial file nobody deletes is how a disk fills
+        // up quietly, so a failed delete is logged rather than swallowed.
+        if ($disk->exists($filename) && !$disk->delete($filename)) {
+            $log->warning('Chirp: could not remove a partial recording download', ['file' => $filename]);
         }
     }
 }
