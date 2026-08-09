@@ -65,10 +65,18 @@ return [
         ->default('linkrobins-chirp.record-rooms', '1')
         // Forum-wide default speaker policy for NEW rooms (host can flip live).
         ->default('linkrobins-chirp.default-speak-policy', 'open')
-        // Ceiling on a delivered recording, enforced before and during the
-        // transfer (FetchRecordingJob). Server-only: an operator can raise it
-        // for a forum that really does run marathon shows.
-        ->default('linkrobins-chirp.max-recording-bytes', (string) \LinkRobins\Chirp\Job\FetchRecordingJob::DEFAULT_MAX_BYTES)
+        // Ceiling on a delivered recording (2 GB), enforced before and during
+        // the transfer. Server-only: an operator can raise it for a forum that
+        // really does run marathon shows.
+        //
+        // The literal is deliberate — this file is evaluated on EVERY request
+        // during extension boot, so referencing a class constant here makes
+        // the whole forum (not just Chirp) 500 if that class can't autoload
+        // for any reason. Installing over a running PHP-FPM with a stale
+        // opcache does exactly that, which is a miserable first-install
+        // experience. Keep in step with FetchRecordingJob::DEFAULT_MAX_BYTES,
+        // which the job asserts against.
+        ->default('linkrobins-chirp.max-recording-bytes', '2147483648')
         ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
         ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 
