@@ -3,8 +3,8 @@
 namespace LinkRobins\Chirp\Http;
 
 use Flarum\Discussion\Discussion;
-use Flarum\Foundation\Paths;
 use Flarum\Http\RequestUtil;
+use Illuminate\Contracts\Filesystem\Factory;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\EmptyResponse;
 use LinkRobins\Chirp\Recording;
@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
 class DeleteRecordingController implements RequestHandlerInterface
 {
     public function __construct(
-        protected Paths $paths,
+        protected Factory $filesystem,
         protected LoggerInterface $log,
     ) {
     }
@@ -42,16 +42,16 @@ class DeleteRecordingController implements RequestHandlerInterface
         $discussion = Discussion::whereVisibleTo($actor)->findOrFail($recording->discussion_id);
         $actor->assertCan('chirpDeleteRecording', $discussion);
 
-        // The forum holds the ONLY copy, so a file we fail to unlink is a
+        // The forum holds the ONLY copy, so a file we fail to delete is a
         // leak nobody would otherwise hear about — log it rather than
-        // swallowing the error (v1.1.3 review, finding 4). The row still goes:
-        // a stranded file is better than a listing that can't be removed.
+        // swallowing the error. The row still goes: a stranded file is
+        // better than a listing that can't be removed.
         if ($recording->path && !str_contains($recording->path, '/')) {
-            $file = $this->paths->storage . '/chirp-recordings/' . $recording->path;
-            if (is_file($file) && !@unlink($file)) {
+            $disk = $this->filesystem->disk('chirp-recordings');
+            if ($disk->exists($recording->path) && !$disk->delete($recording->path)) {
                 $this->log->warning('Chirp: could not delete a recording file', [
                     'recording' => $recording->id,
-                    'path' => $file,
+                    'file' => $recording->path,
                 ]);
             }
         }

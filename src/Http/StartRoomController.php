@@ -5,6 +5,7 @@ namespace LinkRobins\Chirp\Http;
 use Carbon\Carbon;
 use Flarum\Discussion\Discussion;
 use Flarum\Http\RequestUtil;
+use Flarum\User\User;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Flarum\Discussion\UserState;
@@ -83,15 +84,41 @@ class StartRoomController implements RequestHandlerInterface
             $actor->assertAdmin();
         }
 
-        // Clear rows for rooms the media server says are already gone BEFORE
-        // opening the transaction: reconciling makes one network call per busy
-        // channel, and doing that under lockForUpdate held write locks on
-        // chirp_rooms for as long as a slow server took to answer.
+        [$room, $channel] = $this->openRoom($discussion, $actor, $mode);
+
+        $this->consumeSchedule($discussion);
+        $this->maybeStartRecording($discussion, $actor, $mode, $channel);
+        $this->notifyFollowers($discussion, $actor, $mode);
+
+        return new JsonResponse([
+            'endpoint' => $channel->endpoint,
+            'token'    => $this->tokens->forParticipant(
+                $channel,
+                Room::nameFor($discussion->id),
+                'u' . $actor->id,
+                $actor->display_name,
+                canPublish: true,
+            ),
+            'roomId'   => $room->id,
+        ]);
+    }
+
+    /**
+     * Claim a free channel and create the room row, atomically.
+     *
+     * Reconciliation runs BEFORE the transaction opens: it makes one network
+     * call per busy channel, and doing that under lockForUpdate held write
+     * locks on chirp_rooms for as long as a slow media server took to answer.
+     *
+     * @return array{0: Room, 1: \LinkRobins\Chirp\Channel}
+     */
+    private function openRoom(Discussion $discussion, User $actor, string $mode): array
+    {
         if ($mode === 'live' && !$this->channels->freeForLive()) {
             $this->reconciler->reap();
         }
 
-        [$room, $channel] = Room::query()->getConnection()->transaction(function () use ($discussion, $actor, $mode) {
+        return Room::query()->getConnection()->transaction(function () use ($discussion, $actor, $mode) {
             // One bar per discussion, whatever its shape: an existing room
             // here (live show or designated channel) blocks another.
             if (Room::query()->lockForUpdate()->where('discussion_id', $discussion->id)->exists()) {
@@ -101,7 +128,6 @@ class StartRoomController implements RequestHandlerInterface
             if ($mode === 'live') {
                 // Post-reap: whatever is still occupied is genuinely live.
                 $channel = $this->channels->freeForLive();
-
                 if (!$channel) {
                     throw new ChannelBusyException();
                 }
@@ -126,31 +152,44 @@ class StartRoomController implements RequestHandlerInterface
 
             return [$room, $channel];
         });
+    }
 
-        // The show the schedule announced is now ON — consume it.
+    /** The show the schedule announced is now ON — consume it. */
+    private function consumeSchedule(Discussion $discussion): void
+    {
         try {
             Schedule::query()->where('discussion_id', $discussion->id)->delete();
         } catch (\Throwable) {
             // Never let schedule bookkeeping block going live.
         }
+    }
 
-        // Recording: pre-create the LiveKit room so its metadata carries the
-        // record flag into the service's room_started webhook, and stash a
-        // pending row NOW — it's the only moment the starter is known (the
-        // room row is deleted at end, the file arrives minutes later).
-        // Voice channels are places, not shows — they are never recorded.
-        if ($mode === 'live' && $this->recordingActive($channel)) {
-            $this->rooms->createRoom($channel, Room::nameFor($discussion->id), ['record' => true]);
-            Recording::create([
-                'discussion_id' => $discussion->id,
-                'user_id'       => $actor->id,
-                'status'        => 'pending',
-                'created_at'    => Carbon::now(),
-            ]);
+    /**
+     * Pre-create the LiveKit room so its metadata carries the record flag into
+     * the service's room_started webhook, and stash a pending row NOW — it is
+     * the only moment the starter is known (the room row is deleted at end,
+     * the file arrives minutes later). Voice channels are places, not shows —
+     * they are never recorded.
+     */
+    private function maybeStartRecording(Discussion $discussion, User $actor, string $mode, Channel $channel): void
+    {
+        if ($mode !== 'live' || !$this->recordingActive($channel)) {
+            return;
         }
 
-        // Tell the discussion's followers the room is on — fail-soft: a
-        // notification hiccup must never block going live.
+        $this->rooms->createRoom($channel, Room::nameFor($discussion->id), ['record' => true]);
+
+        Recording::create([
+            'discussion_id' => $discussion->id,
+            'user_id'       => $actor->id,
+            'status'        => 'pending',
+            'created_at'    => Carbon::now(),
+        ]);
+    }
+
+    /** Fail-soft: a notification hiccup must never block going live. */
+    private function notifyFollowers(Discussion $discussion, User $actor, string $mode): void
+    {
         try {
             $followers = UserState::query()
                 ->where('discussion_id', $discussion->id)
@@ -161,23 +200,12 @@ class StartRoomController implements RequestHandlerInterface
                 ->pluck('user')
                 ->filter()
                 ->all();
+
             if ($followers) {
                 $this->notifications->sync(new RoomStartedBlueprint($discussion, $actor, $mode), $followers);
             }
         } catch (\Throwable $e) {
             // Logged by Flarum's handler if it cares; the room is live either way.
         }
-
-        return new JsonResponse([
-            'endpoint' => $channel->endpoint,
-            'token'    => $this->tokens->forParticipant(
-                $channel,
-                Room::nameFor($discussion->id),
-                'u' . $actor->id,
-                $actor->display_name,
-                canPublish: true,
-            ),
-            'roomId'   => $room->id,
-        ]);
     }
 }
