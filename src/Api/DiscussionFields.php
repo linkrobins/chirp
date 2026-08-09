@@ -25,7 +25,8 @@ class DiscussionFields
     private ?array $rooms = null;
 
     /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
-    private ?array $recordings = null;
+    /** @var array<int, array<int, array{id:int,duration:int,recordedAt:?string}>> */
+    private array $recordings = [];
 
     /** @var array<int, string>|null discussion_id => ISO starts_at; null = not fetched */
     private ?array $schedules = null;
@@ -166,30 +167,35 @@ class DiscussionFields
     }
 
     /**
-     * Delivered recordings per discussion — the front end renders them under
-     * the FIRST post ("the discussion keeps the show"). Same memo shape as
-     * liveId(): ONE indexed query per request, zero per row, so the
-     * discussion index never goes N+1. Rows are (id, duration, timestamp)
-     * only — a few thousand recordings is still a trivial read.
+     * Delivered recordings for one discussion — the front end renders them
+     * under the FIRST post ("the discussion keeps the show").
+     *
+     * Memoized PER DISCUSSION rather than bulk-loading the table: the old
+     * shape ran one `where(status, delivered)` with no bound, so every
+     * discussion-list response read every recording the forum had ever
+     * stored — cheap at launch, linear in total recordings forever after.
+     * This is one indexed point-lookup per discussion on the page instead
+     * (see the (discussion_id, status) index), which is bounded by page size
+     * no matter how large the archive gets, and still never N+1 within a
+     * request.
      */
     private function recordingsFor(int $discussionId): array
     {
-        if ($this->recordings === null) {
-            $this->recordings = [];
-            $rows = Recording::query()
-                ->where('status', 'delivered')
-                ->orderBy('id')
-                ->get(['id', 'discussion_id', 'duration_seconds', 'delivered_at']);
-            foreach ($rows as $row) {
-                $this->recordings[(int) $row->discussion_id][] = [
-                    'id'         => (int) $row->id,
-                    'duration'   => (int) $row->duration_seconds,
-                    'recordedAt' => optional($row->delivered_at)->toIso8601String(),
-                ];
-            }
+        if (isset($this->recordings[$discussionId])) {
+            return $this->recordings[$discussionId];
         }
 
-        return $this->recordings[$discussionId] ?? [];
+        $rows = Recording::query()
+            ->where('discussion_id', $discussionId)
+            ->where('status', 'delivered')
+            ->orderBy('id')
+            ->get(['id', 'duration_seconds', 'delivered_at']);
+
+        return $this->recordings[$discussionId] = $rows->map(fn ($row) => [
+            'id'         => (int) $row->id,
+            'duration'   => (int) $row->duration_seconds,
+            'recordedAt' => optional($row->delivered_at)->toIso8601String(),
+        ])->all();
     }
 
     /** Upcoming (grace-windowed) schedules, one query per request. */

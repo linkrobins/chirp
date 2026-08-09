@@ -52,6 +52,10 @@ return [
         ->default('linkrobins-chirp.record-rooms', '1')
         // Forum-wide default speaker policy for NEW rooms (host can flip live).
         ->default('linkrobins-chirp.default-speak-policy', 'open')
+        // Ceiling on a delivered recording, enforced before and during the
+        // transfer (FetchRecordingJob). Server-only: an operator can raise it
+        // for a forum that really does run marathon shows.
+        ->default('linkrobins-chirp.max-recording-bytes', (string) \LinkRobins\Chirp\Job\FetchRecordingJob::DEFAULT_MAX_BYTES)
         ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
         ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 

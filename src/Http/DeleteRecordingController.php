@@ -11,6 +11,7 @@ use LinkRobins\Chirp\Recording;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * DELETE /chirp/recordings/{id} — remove a recording for good. Gated on its
@@ -20,8 +21,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class DeleteRecordingController implements RequestHandlerInterface
 {
-    public function __construct(protected Paths $paths)
-    {
+    public function __construct(
+        protected Paths $paths,
+        protected LoggerInterface $log,
+    ) {
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -39,8 +42,18 @@ class DeleteRecordingController implements RequestHandlerInterface
         $discussion = Discussion::whereVisibleTo($actor)->findOrFail($recording->discussion_id);
         $actor->assertCan('chirpDeleteRecording', $discussion);
 
+        // The forum holds the ONLY copy, so a file we fail to unlink is a
+        // leak nobody would otherwise hear about — log it rather than
+        // swallowing the error (v1.1.3 review, finding 4). The row still goes:
+        // a stranded file is better than a listing that can't be removed.
         if ($recording->path && !str_contains($recording->path, '/')) {
-            @unlink($this->paths->storage . '/chirp-recordings/' . $recording->path);
+            $file = $this->paths->storage . '/chirp-recordings/' . $recording->path;
+            if (is_file($file) && !@unlink($file)) {
+                $this->log->warning('Chirp: could not delete a recording file', [
+                    'recording' => $recording->id,
+                    'path' => $file,
+                ]);
+            }
         }
         $recording->delete();
 

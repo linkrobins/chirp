@@ -21,6 +21,7 @@ use LinkRobins\Chirp\Notification\RoomStartedBlueprint;
 use LinkRobins\Chirp\Recording;
 use LinkRobins\Chirp\Schedule;
 use LinkRobins\Chirp\Room;
+use LinkRobins\Chirp\RoomReconciler;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -43,6 +44,7 @@ class StartRoomController implements RequestHandlerInterface
         protected AccessToken $tokens,
         protected RoomService $rooms,
         protected Channels $channels,
+        protected RoomReconciler $reconciler,
         protected SettingsRepositoryInterface $settings,
         protected NotificationSyncer $notifications,
     ) {
@@ -81,6 +83,14 @@ class StartRoomController implements RequestHandlerInterface
             $actor->assertAdmin();
         }
 
+        // Clear rows for rooms the media server says are already gone BEFORE
+        // opening the transaction: reconciling makes one network call per busy
+        // channel, and doing that under lockForUpdate held write locks on
+        // chirp_rooms for as long as a slow server took to answer.
+        if ($mode === 'live' && !$this->channels->freeForLive()) {
+            $this->reconciler->reap();
+        }
+
         [$room, $channel] = Room::query()->getConnection()->transaction(function () use ($discussion, $actor, $mode) {
             // One bar per discussion, whatever its shape: an existing room
             // here (live show or designated channel) blocks another.
@@ -89,36 +99,8 @@ class StartRoomController implements RequestHandlerInterface
             }
 
             if ($mode === 'live') {
-                // Claim a channel with no live broadcast. A LIVE room that
-                // ended NATURALLY (everyone left, the server's departure
-                // timeout closed it) never passes through EndRoom, so its
-                // row lingers and would wedge its channel with 409s forever
-                // — before giving up, probe each busy channel's room and
-                // clear the confirmed-dead ones (API failure stays
-                // fail-closed = busy).
+                // Post-reap: whatever is still occupied is genuinely live.
                 $channel = $this->channels->freeForLive();
-
-                if (!$channel) {
-                    foreach (Room::query()->lockForUpdate()->where('mode', 'live')->get() as $existing) {
-                        // Grace window: a JUST-started room has no server-side
-                        // presence until its host's WebRTC connect lands (the
-                        // media server only creates rooms on first join unless
-                        // recording pre-created it) — indistinguishable from a
-                        // dead room to the probe. Don't reconcile rooms younger
-                        // than a minute or a racing second host can silently
-                        // delete a live-in-a-moment room. (Found by the 2ch
-                        // drill: an API-only start with no join was eaten.)
-                        if ($existing->created_at->gt(Carbon::now()->subMinute())) {
-                            continue;
-                        }
-                        $existingChannel = $this->channels->forRoom($existing);
-                        if ($existingChannel
-                            && $this->rooms->roomExists($existingChannel, Room::nameFor($existing->discussion_id)) === false) {
-                            $existing->delete();
-                        }
-                    }
-                    $channel = $this->channels->freeForLive();
-                }
 
                 if (!$channel) {
                     throw new ChannelBusyException();
