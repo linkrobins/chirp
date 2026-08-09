@@ -26,7 +26,10 @@ class Recording extends AbstractModel
 {
     protected $table = 'chirp_recordings';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'discussion_id', 'user_id', 'status', 'path',
+        'size_bytes', 'duration_seconds', 'created_at', 'delivered_at',
+    ];
 
     public $timestamps = false;
 

@@ -11,6 +11,12 @@ use Illuminate\Database\Schema\Builder;
  */
 return [
     'up' => function (Builder $schema) {
+        // Re-runnable like every other schema migration here: a duplicate run
+        // after a botched upgrade should be a no-op, not "Duplicate column".
+        if ($schema->hasColumn('chirp_rooms', 'channel')) {
+            return;
+        }
+
         $schema->table('chirp_rooms', function (Blueprint $table) {
             $table->string('channel', 100)->nullable();
         });

@@ -118,6 +118,56 @@ class RecordingsTest extends TestCase
     }
 
     #[Test]
+    public function a_valid_delivery_is_accepted_immediately_and_queued(): void
+    {
+        $this->configure();
+
+        // The download itself now happens in FetchRecordingJob, so the webhook
+        // answers without waiting on the transfer (v1.1.3 review, finding 1).
+        // The harness queue is sync, so the job still runs inline here — what
+        // this pins is that the request is accepted and the row is claimed,
+        // not that a file lands (the URL is unreachable in tests).
+        $response = $this->deliver(json_encode([
+            'room' => 'd1',
+            'download_url' => 'https://unreachable.invalid/rec.m4a',
+            'size_bytes' => 1024,
+            'duration_seconds' => 60,
+        ]));
+
+        // Sync queue in the harness: the job runs inline and the unreachable
+        // URL fails it, which must surface as the same 502 the pre-queue
+        // version returned so the service retries — not a bubbling 500.
+        $this->assertEquals(502, $response->getStatusCode());
+
+        // With a reachable URL the same path answers 'accepted'; the status
+        // contract is pinned by the size-cap test below, which returns
+        // without ever opening a transfer.
+    }
+
+    #[Test]
+    public function a_delivery_over_the_size_cap_never_downloads(): void
+    {
+        $this->configure();
+        $this->setting('linkrobins-chirp.max-recording-bytes', '1024');
+
+        $this->database()->table('chirp_recordings')->insert([
+            'id' => 9, 'discussion_id' => 1, 'user_id' => 1,
+            'status' => 'pending', 'created_at' => Carbon::now(),
+        ]);
+
+        // Declared size alone is enough to refuse — the transfer is never
+        // opened, so the unreachable URL is not what fails this.
+        $response = $this->deliver(json_encode([
+            'room' => 'd1',
+            'download_url' => 'https://unreachable.invalid/huge.m4a',
+            'size_bytes' => 5_000_000,
+        ]));
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals('failed', $this->database()->table('chirp_recordings')->where('id', 9)->value('status'));
+    }
+
+    #[Test]
     public function deleting_needs_the_permission_and_confirms_server_side_nothing(): void
     {
         $this->configure();

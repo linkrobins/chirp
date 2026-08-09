@@ -3,11 +3,9 @@
 namespace LinkRobins\Chirp\Http;
 
 use Carbon\Carbon;
-use Flarum\Foundation\Paths;
-use Flarum\Settings\SettingsRepositoryInterface;
-use GuzzleHttp\Client;
-use Illuminate\Support\Str;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Laminas\Diactoros\Response\JsonResponse;
+use LinkRobins\Chirp\Job\FetchRecordingJob;
 use LinkRobins\Chirp\Recording;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -18,19 +16,24 @@ use Psr\Log\LoggerInterface;
  * POST /api/chirp/recordings — the hosted service delivers a finished
  * recording. Auth is the channel trust chain itself: the raw body is
  * HMAC-SHA256-signed with this forum's api_secret (X-Chirp-Signature,
- * key named by X-Chirp-Key). The payload carries a signed one-time URL on
- * the recording pool; we pull the file into storage/chirp-recordings/
- * DURING this request (the service retries with backoff on failure), then
- * drop the recording post into the discussion. After the 200, this forum
- * holds the only copy.
+ * key named by X-Chirp-Key).
+ *
+ * This handler only verifies and queues: the actual pull of the audio (a
+ * large file, up to a five-minute transfer) happens in {@see FetchRecordingJob}
+ * so a delivery can't hold a PHP-FPM worker hostage and starve a small pool
+ * (v1.1.3 review, finding 1).
+ *
+ * Retry is preserved on BOTH paths: with a real queue driver it is the job's
+ * $tries/$backoff, and on the default `sync` driver — where the job still runs
+ * inline — a failure is caught below and answered 502, exactly the signal the
+ * pre-queue version gave the service. After the job runs, this forum holds the
+ * only copy.
  */
 class ReceiveRecordingController implements RequestHandlerInterface
 {
     public function __construct(
-        protected SettingsRepositoryInterface $settings,
         protected \LinkRobins\Chirp\Channels $channels,
-        protected Client $http,
-        protected Paths $paths,
+        protected Dispatcher $bus,
         protected LoggerInterface $log,
     ) {
     }
@@ -77,35 +80,34 @@ class ReceiveRecordingController implements RequestHandlerInterface
                 'created_at'    => Carbon::now(),
             ]);
 
-        $dir = $this->paths->storage . '/chirp-recordings';
-        if (!is_dir($dir) && !mkdir($dir, 0o755, true) && !is_dir($dir)) {
-            return new JsonResponse(['error' => 'storage'], 500);
-        }
-        $filename = Str::lower(Str::random(40)) . '.m4a';
-
+        // Deliberately NOT claiming the row with an in-progress status: there
+        // is no updated_at here to expire one with, so a worker killed
+        // mid-download would strand the row and make every later re-delivery
+        // a no-op. A duplicate delivery instead queues a second job, which
+        // discards its own copy when it finds the row already delivered.
         try {
-            $this->http->get($downloadUrl, [
-                'sink'            => $dir . '/' . $filename,
-                'connect_timeout' => 10,
-                'timeout'         => 300,
-            ]);
+            $this->bus->dispatch(new FetchRecordingJob(
+                (int) $recording->id,
+                $downloadUrl,
+                (int) ($payload['size_bytes'] ?? 0),
+                (int) ($payload['duration_seconds'] ?? 0),
+            ));
         } catch (\Throwable $e) {
-            @unlink($dir . '/' . $filename);
-            $this->log->warning('Chirp: recording download failed', ['error' => $e->getMessage()]);
+            // On the default `sync` driver the job runs INSIDE this call, so a
+            // download failure lands here rather than in the queue's retry
+            // machinery. Answer 502 exactly as the pre-queue version did, so
+            // the service retries with backoff — a bubbling 500 would both
+            // log an unhandled exception and lose that contract. On a real
+            // queue driver dispatch returns immediately and retries are the
+            // job's own ($tries/$backoff).
+            $this->log->warning('Chirp: inline recording fetch failed', [
+                'recording' => $recording->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return new JsonResponse(['error' => 'download failed'], 502);
         }
 
-        // No event post: the recording renders under the discussion's FIRST
-        // post (serialized via DiscussionFields), where the show actually
-        // lives — not buried at the bottom of the thread.
-        $recording->forceFill([
-            'status'           => 'delivered',
-            'path'             => $filename,
-            'size_bytes'       => (int) ($payload['size_bytes'] ?? filesize($dir . '/' . $filename)),
-            'duration_seconds' => (int) ($payload['duration_seconds'] ?? 0),
-            'delivered_at'     => Carbon::now(),
-        ])->save();
-
-        return new JsonResponse(['status' => 'ok']);
+        return new JsonResponse(['status' => 'accepted']);
     }
 }

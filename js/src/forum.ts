@@ -17,9 +17,13 @@ import ChirpScheduleModal from './components/ChirpScheduleModal';
 // One connection for the whole SPA session — you can be in one room at a time,
 // and audio keeps playing while you browse elsewhere on the forum.
 const state = new ChirpState();
-// Debugging handle for bench drills — harmless in production (everything on
-// it is reachable through the UI anyway).
-(window as any).__chirp = state;
+// Debug handle for bench drills only — webpack's DefinePlugin folds this to
+// `false` in a production build and dead-code-eliminates the assignment, so
+// the live LiveKit Room + hand/policy state is not reachable from the global
+// scope on a real forum (v1.1.3 review, finding 5).
+if (process.env.NODE_ENV !== 'production') {
+  (window as any).__chirp = state;
+}
 
 app.initializers.add('linkrobins-chirp', () => {
   // Followers hear about rooms opening.
