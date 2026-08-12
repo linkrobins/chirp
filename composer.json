@@ -15,7 +15,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Karl Bullock",
+            "name": "Link Robins",
             "email": "karl@linkrobins.com"
         }
     ],
@@ -28,6 +28,7 @@
         "email": "karl@linkrobins.com"
     },
     "require": {
+        "php": "^8.3",
         "flarum/core": "^2.0",
         "guzzlehttp/guzzle": "^7.0"
     },
@@ -45,7 +46,8 @@
                 "name": "fas fa-microphone",
                 "color": "#07adcc",
                 "backgroundColor": "#1a2535"
-            }
+            },
+            "category": "feature"
         },
         "flarum-cli": {
             "modules": {
