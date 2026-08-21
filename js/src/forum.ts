@@ -12,6 +12,7 @@ import ChirpRecordingBar from './components/ChirpRecordingBar';
 import ChirpRoomStartedNotification from './components/ChirpRoomStartedNotification';
 import ChirpRoomScheduledNotification from './components/ChirpRoomScheduledNotification';
 import ChirpScheduleBar from './components/ChirpScheduleBar';
+import ChirpScheduledChip from './components/ChirpScheduledChip';
 import ChirpScheduleModal from './components/ChirpScheduleModal';
 
 // One connection for the whole SPA session — you can be in one room at a time,
@@ -48,7 +49,16 @@ app.initializers.add('linkrobins-chirp', () => {
   extend('flarum/forum/components/DiscussionListItem', 'oninit', function (this: any) {
     this.subtree?.check?.(
       () => state.discussionId,
-      () => state.connecting
+      () => state.connecting,
+      // The scheduled chip renders from this attr plus the wall clock, so
+      // register both the attr and the coarse minute bucket — otherwise the
+      // frozen row never repaints as the countdown ticks (or when the host
+      // goes live / withdraws the schedule).
+      () => this.attrs?.discussion?.attribute?.('chirpScheduledAt'),
+      () => {
+        const at = this.attrs?.discussion?.attribute?.('chirpScheduledAt');
+        return at ? Math.floor((new Date(String(at)).getTime() - Date.now()) / 60000) : null;
+      }
     );
   });
 
@@ -75,6 +85,26 @@ app.initializers.add('linkrobins-chirp', () => {
     vnode.attrs.className = `${vnode.attrs.className || ''} has-chirp-room`.trim();
 
     vnode.children.push(m(ChirpBar, { discussion, state, inline: true }));
+  });
+
+  // A scheduled show earns a "LIVE in 2h" chip on the info line under the
+  // title — the same discovery job the row toolbar does for live rooms,
+  // without the toolbar's weight. The toolbar owns live rows (and the room
+  // you're in), so the chip only covers the announcement phase.
+  extend('flarum/forum/components/DiscussionListItem', 'infoItems', function (this: any, items: any) {
+    const discussion = this.attrs?.discussion;
+    const scheduledAt = discussion?.attribute?.('chirpScheduledAt');
+    if (!scheduledAt) return;
+    if (discussion?.attribute?.('chirpIsLive') || state.inDiscussion(Number(discussion?.id?.() || 0))) return;
+
+    // Same 3h stale grace as the discussion page's countdown bar: a host who
+    // never showed shouldn't advertise forever. The list payload is cached,
+    // so a chip can still lag a fresh schedule — acceptable for discovery;
+    // the discussion page is the source of truth.
+    const startsAt = new Date(String(scheduledAt)).getTime();
+    if (isNaN(startsAt) || startsAt <= Date.now() - 3 * 3600e3) return;
+
+    items.add('chirpScheduled', m(ChirpScheduledChip, { discussion }), 100);
   });
 
   // Accent mode rides on <html> so it reaches the dock too (which mounts

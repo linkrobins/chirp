@@ -4,6 +4,7 @@ import Button from 'flarum/common/components/Button';
 import type Mithril from 'mithril';
 import m from 'mithril';
 import ComposerTracker from '../composerTracker';
+import formatCountdown from '../utils/formatCountdown';
 
 interface ChirpScheduleBarAttrs extends ComponentAttrs {
   discussion: any;
@@ -46,17 +47,7 @@ export default class ChirpScheduleBar extends Component<ChirpScheduleBarAttrs> {
     const startsAt = new Date(String(discussion.attribute('chirpScheduledAt')));
     if (isNaN(startsAt.getTime())) return null;
 
-    const ms = startsAt.getTime() - Date.now();
-    const countdown = (() => {
-      if (ms <= 60000) return null; // "any moment" territory
-      const mins = Math.floor(ms / 60000);
-      const d = Math.floor(mins / 1440);
-      const h = Math.floor((mins % 1440) / 60);
-      const min = mins % 60;
-      if (d > 0) return `${d}d ${h}h`;
-      if (h > 0) return `${h}h ${min}m`;
-      return `${min}m`;
-    })();
+    const countdown = formatCountdown(startsAt.getTime() - Date.now());
 
     const canCancel = !!discussion.attribute('canChirpStart');
 
