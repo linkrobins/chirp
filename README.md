@@ -73,4 +73,4 @@ at runtime. `js/webpack.config.js` disables `splitChunks` to enforce this.
 ## Links
 
 - [Get a channel](https://linkrobins.com/chirp)
-- [Forum & support](https://linkrobins.com/forum)
+- [Support](https://github.com/linkrobins/chirp/issues)
