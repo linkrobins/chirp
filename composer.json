@@ -24,7 +24,6 @@
         "issues": "https://github.com/linkrobins/chirp/issues",
         "source": "https://github.com/linkrobins/chirp",
         "docs": "https://linkrobins.com/chirp",
-        "forum": "https://linkrobins.com/forum",
         "email": "karl@linkrobins.com"
     },
     "require": {
