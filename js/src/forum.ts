@@ -25,6 +25,30 @@ if (process.env.NODE_ENV !== 'production') {
   (window as any).__chirp = state;
 }
 
+// Desktop shell bridge: inside Chirp's desktop app (linkrobins/chirp-desktop)
+// a preload script exposes window.chirpDesktop, and the shell's GLOBAL
+// push-to-talk shortcut arrives through it — the one thing a browser tab
+// cannot do while a game has focus. Feature-detected: in a normal browser
+// none of this exists and none of this runs. The shell only relays the
+// shortcut in and mirrors room state out (for its tray); the page keeps
+// sole ownership of the microphone and all room logic.
+const desktop = (window as any).chirpDesktop;
+if (desktop && desktop.version >= 1) {
+  const report = () =>
+    desktop.reportRoomState({ inRoom: state.connected(), muted: state.muted });
+
+  desktop.onPttToggle(() => {
+    if (state.connected()) {
+      void state.setMuted(!state.muted).then(report);
+    }
+  });
+
+  // State transitions all funnel through m.redraw(), which has no public
+  // hook, so the tray is kept honest by a cheap heartbeat instead: two
+  // booleans over IPC every 1.5s, started only under the shell.
+  setInterval(report, 1500);
+}
+
 app.initializers.add('linkrobins-chirp', () => {
   // Followers hear about rooms opening.
   app.notificationComponents.chirpRoomStarted = ChirpRoomStartedNotification as any;
