@@ -34,8 +34,7 @@ if (process.env.NODE_ENV !== 'production') {
 // sole ownership of the microphone and all room logic.
 const desktop = (window as any).chirpDesktop;
 if (desktop && desktop.version >= 1) {
-  const report = () =>
-    desktop.reportRoomState({ inRoom: state.connected(), muted: state.muted });
+  const report = () => desktop.reportRoomState({ inRoom: state.connected(), muted: state.muted });
 
   desktop.onPttToggle(() => {
     if (state.connected()) {
