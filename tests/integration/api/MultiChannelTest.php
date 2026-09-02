@@ -25,6 +25,21 @@ class MultiChannelTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
 
+    protected function allowedRepeatedQueries(): array
+    {
+        return [
+            // Saving channel keys clears the pre-multi-channel legacy
+            // settings, one repository delete per key. The set is fixed and
+            // small (it cannot grow with data), and the settings repository
+            // only exposes per-key deletion, so the repetition is bounded
+            // and deliberate rather than an N+1. Matched on the verb alone
+            // because the table name varies with both the identifier quoting
+            // (backticks vs double quotes) and the configured table prefix;
+            // the only deletes this endpoint issues are these.
+            'delete from',
+        ];
+    }
+
     public function setUp(): void
     {
         parent::setUp();
