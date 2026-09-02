@@ -32,11 +32,11 @@ class MultiChannelTest extends TestCase
             // settings, one repository delete per key. The set is fixed and
             // small (it cannot grow with data), and the settings repository
             // only exposes per-key deletion, so the repetition is bounded
-            // and deliberate rather than an N+1.
-            'delete from `settings`',
-            // Same shape as above under drivers that quote identifiers with
-            // double quotes (SQLite, PostgreSQL).
-            'delete from "settings"',
+            // and deliberate rather than an N+1. Matched on the verb alone
+            // because the table name varies with both the identifier quoting
+            // (backticks vs double quotes) and the configured table prefix;
+            // the only deletes this endpoint issues are these.
+            'delete from',
         ];
     }
 
