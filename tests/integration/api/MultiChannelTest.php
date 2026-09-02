@@ -25,6 +25,21 @@ class MultiChannelTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
 
+    protected function allowedRepeatedQueries(): array
+    {
+        return [
+            // Saving channel keys clears the pre-multi-channel legacy
+            // settings, one repository delete per key. The set is fixed and
+            // small (it cannot grow with data), and the settings repository
+            // only exposes per-key deletion, so the repetition is bounded
+            // and deliberate rather than an N+1.
+            'delete from `settings`',
+            // Same shape as above under drivers that quote identifiers with
+            // double quotes (SQLite, PostgreSQL).
+            'delete from "settings"',
+        ];
+    }
+
     public function setUp(): void
     {
         parent::setUp();
