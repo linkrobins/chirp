@@ -12,6 +12,7 @@ namespace LinkRobins\Chirp\Tests\integration\api;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use LinkRobins\Chirp\Tests\integration\ConfiguresChirp;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
@@ -22,6 +23,7 @@ use PHPUnit\Framework\Attributes\Test;
 class RecordingsTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
+    use ConfiguresChirp;
 
     private const SECRET = 'ssssssssssssssssssssssssssssssssssssssss';
 
@@ -49,12 +51,10 @@ class RecordingsTest extends TestCase
 
     private function configure(): void
     {
-        $this->setting('linkrobins-chirp.connected', '1');
-        $this->setting('linkrobins-chirp.api-key', 'LKtest');
-        $this->setting('linkrobins-chirp.api-secret', self::SECRET);
+        $this->connectChannels();
     }
 
-    private function deliver(string $body, ?string $sig = null, string $key = 'LKtest')
+    private function deliver(string $body, ?string $sig = null, string $key = 'ch-one')
     {
         $stream = new \Laminas\Diactoros\Stream('php://temp', 'wb+');
         $stream->write($body);
@@ -63,7 +63,7 @@ class RecordingsTest extends TestCase
         return $this->send(
             $this->request('POST', '/api/chirp/recordings')
                 ->withHeader('X-Chirp-Key', $key)
-                ->withHeader('X-Chirp-Signature', $sig ?? hash_hmac('sha256', $body, self::SECRET))
+                ->withHeader('X-Chirp-Signature', $sig ?? hash_hmac('sha256', $body, 'k1'))
                 ->withHeader('Content-Type', 'application/json')
                 ->withBody($stream)
         );

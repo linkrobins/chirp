@@ -16,7 +16,7 @@ use LinkRobins\Chirp\Channels;
 use LinkRobins\Chirp\Exception\ChannelBusyException;
 use LinkRobins\Chirp\Exception\ChannelsExhaustedException;
 use LinkRobins\Chirp\Exception\NotConfiguredException;
-use LinkRobins\Chirp\LiveKit\AccessToken;
+use LinkRobins\Chirp\ChirpClient;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Notification\RoomStartedBlueprint;
 use LinkRobins\Chirp\Recording;
@@ -42,7 +42,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 class StartRoomController implements RequestHandlerInterface
 {
     public function __construct(
-        protected AccessToken $tokens,
+        protected ChirpClient $service,
         protected RoomService $rooms,
         protected Channels $channels,
         protected RoomReconciler $reconciler,
@@ -90,15 +90,19 @@ class StartRoomController implements RequestHandlerInterface
         $this->maybeStartRecording($discussion, $actor, $mode, $channel);
         $this->notifyFollowers($discussion, $actor, $mode);
 
+        $grant = $this->service->mintToken($channel, (int) $discussion->id, 'participant', [
+            'identity' => 'u' . $actor->id,
+            'name'     => $actor->display_name,
+            'publish'  => true,
+        ]);
+
+        if (!$grant) {
+            throw new NotConfiguredException();
+        }
+
         return new JsonResponse([
-            'endpoint' => $channel->endpoint,
-            'token'    => $this->tokens->forParticipant(
-                $channel,
-                Room::nameFor($discussion->id),
-                'u' . $actor->id,
-                $actor->display_name,
-                canPublish: true,
-            ),
+            'endpoint' => $grant['endpoint'],
+            'token'    => $grant['token'],
             'roomId'   => $room->id,
         ]);
     }
@@ -177,7 +181,7 @@ class StartRoomController implements RequestHandlerInterface
             return;
         }
 
-        $this->rooms->createRoom($channel, Room::nameFor($discussion->id), ['record' => true]);
+        $this->rooms->createRoom($channel, (int) $discussion->id, ['record' => true]);
 
         Recording::create([
             'discussion_id' => $discussion->id,

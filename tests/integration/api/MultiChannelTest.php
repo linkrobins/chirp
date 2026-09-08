@@ -12,18 +12,20 @@ namespace LinkRobins\Chirp\Tests\integration\api;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use LinkRobins\Chirp\Tests\integration\ConfiguresChirp;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
  * Multi-channel: a forum runs SEVERAL purchased channels at once — each
  * powers one designated voice channel plus one live broadcast at a time.
- * The LiveKit API is unreachable in the harness — every server call is
- * fail-soft/fail-closed by design, so DB rows (incl. the room→channel
- * binding) and HTTP statuses are the observable truth.
+ * The LiveKit API is unreachable in the harness and the service is stubbed, so
+ * DB rows (incl. the room→channel binding), HTTP statuses and the room names the
+ * stub was asked for are the observable truth.
  */
 class MultiChannelTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
+    use ConfiguresChirp;
 
     protected function allowedRepeatedQueries(): array
     {
@@ -69,11 +71,7 @@ class MultiChannelTest extends TestCase
     /** Two connected channels via the multi-channel JSON setting. */
     private function configureTwo(): void
     {
-        $this->setting('linkrobins-chirp.connected', '1');
-        $this->setting('linkrobins-chirp.channels', json_encode([
-            ['key' => 'k1', 'handle' => 'ch-one', 'endpoint' => 'wss://chirp-a.linkrobins.com', 'api_key' => 'LKa', 'api_secret' => str_repeat('a', 40), 'speaker_slots' => 5, 'recordings' => false, 'connected' => true],
-            ['key' => 'k2', 'handle' => 'ch-two', 'endpoint' => 'wss://chirp-b.linkrobins.com', 'api_key' => 'LKb', 'api_secret' => str_repeat('b', 40), 'speaker_slots' => 5, 'recordings' => false, 'connected' => true],
-        ]));
+        $this->connectChannels(['ch-one', 'ch-two']);
     }
 
     #[Test]
@@ -132,15 +130,12 @@ class MultiChannelTest extends TestCase
         $this->assertEquals(200, $res->getStatusCode());
         $body = json_decode((string) $res->getBody(), true);
 
-        // Listener token: minted with ch-two's key/secret, pointed at
-        // ch-two's signaling endpoint.
-        $this->assertEquals('wss://chirp-b.linkrobins.com', $body['endpoint']);
-        [$header, $claims, $sig] = explode('.', $body['token']);
-        $decoded = json_decode(base64_decode(strtr($claims, '-_', '+/')), true);
-        $this->assertEquals('LKb', $decoded['iss']);
-
-        $expected = rtrim(strtr(base64_encode(hash_hmac('sha256', $header . '.' . $claims, str_repeat('b', 40), true)), '+/', '-_'), '=');
-        $this->assertEquals($expected, $sig);
+        // Every channel shares one media server now, so the endpoint no longer
+        // distinguishes them — the ROOM does, and it is derived from the
+        // channel the room is bound to.
+        $this->assertEquals('wss://chirp.linkrobins.test', $body['endpoint']);
+        $minted = $this->app()->getContainer()->make(\LinkRobins\Chirp\ChirpClient::class)->minted;
+        $this->assertEquals('ch-two-d1', end($minted)['room']);
     }
 
     #[Test]
@@ -155,7 +150,9 @@ class MultiChannelTest extends TestCase
         $res = $this->send($this->request('POST', '/api/chirp/rooms/1/token', ['authenticatedAs' => 2, 'json' => []]));
         $this->assertEquals(200, $res->getStatusCode());
         $body = json_decode((string) $res->getBody(), true);
-        $this->assertEquals('wss://chirp-a.linkrobins.com', $body['endpoint']);
+        $this->assertEquals('wss://chirp.linkrobins.test', $body['endpoint']);
+        $minted = $this->app()->getContainer()->make(\LinkRobins\Chirp\ChirpClient::class)->minted;
+        $this->assertEquals('ch-one-d1', end($minted)['room']);
 
         // …and it occupies the first channel's live slot: the next live
         // room lands on ch-two.

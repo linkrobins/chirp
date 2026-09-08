@@ -50,18 +50,11 @@ class Channels
             }
         }
 
-        // Legacy flat settings (pre-multi-channel installs).
-        if ((string) $this->settings->get('linkrobins-chirp.api-secret', '') !== '') {
-            return $this->cache = [Channel::fromArray([
-                'handle'        => 'legacy',
-                'endpoint'      => (string) $this->settings->get('linkrobins-chirp.endpoint', ''),
-                'api_key'       => (string) $this->settings->get('linkrobins-chirp.api-key', ''),
-                'api_secret'    => (string) $this->settings->get('linkrobins-chirp.api-secret', ''),
-                'speaker_slots' => (int) $this->settings->get('linkrobins-chirp.speaker-slots', 1),
-                'recordings'    => $this->settings->get('linkrobins-chirp.recordings-available') === '1',
-                'connected'     => $this->settings->get('linkrobins-chirp.connected') === '1',
-            ])];
-        }
+        // Legacy flat settings from pre-multi-channel installs are deliberately
+        // NOT revived here. They hold an api_secret for a dedicated container
+        // that no longer exists, and this build has no local signer to use it
+        // with. Re-pasting the channel key re-exchanges against the shared
+        // server, which is the supported upgrade path.
 
         return $this->cache = [];
     }
@@ -69,7 +62,7 @@ class Channels
     /** @return Channel[] */
     public function connected(): array
     {
-        return array_values(array_filter($this->all(), fn (Channel $c) => $c->connected && $c->apiSecret !== ''));
+        return array_values(array_filter($this->all(), fn (Channel $c) => $c->connected && $c->setupToken !== ''));
     }
 
     public function anyConnected(): bool
@@ -88,11 +81,11 @@ class Channels
         return null;
     }
 
-    /** Recording-delivery auth: which channel signs with this API key? */
-    public function byApiKey(string $apiKey): ?Channel
+    /** Recording-delivery auth: which channel does this handle name? */
+    public function byDeliveryKey(string $key): ?Channel
     {
         foreach ($this->all() as $channel) {
-            if ($channel->apiKey !== '' && hash_equals($channel->apiKey, $apiKey)) {
+            if ($channel->handle !== '' && hash_equals($channel->handle, $key)) {
                 return $channel;
             }
         }

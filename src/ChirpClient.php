@@ -57,24 +57,87 @@ class ChirpClient
             }
 
             $data = json_decode((string) $response->getBody(), true);
-            if (!is_array($data) || empty($data['endpoint']) || empty($data['api_key']) || empty($data['api_secret'])) {
+            if (!is_array($data) || empty($data['endpoint'])) {
+                return null;
+            }
+
+            // A service that still answers with api_secret is running the old
+            // per-channel media servers, which this build can no longer address:
+            // it has no local signer. Refuse rather than half-connect.
+            if (!empty($data['api_secret'])) {
+                $this->log->warning('Chirp: service returned a signing secret; this build expects service-minted tokens.');
                 return null;
             }
 
             return [
-                // Stable service-side channel name; survives key rotation so
-                // room→channel bindings do too. Older services may not send
-                // it — fall back to a digest of the endpoint, which is also
-                // stable per channel.
+                // Stable service-side channel name; survives credential rotation
+                // so room→channel bindings do too.
                 'handle'        => (string) (Arr::get($data, 'handle') ?: substr(sha1((string) $data['endpoint']), 0, 12)),
                 'endpoint'      => (string) $data['endpoint'],
-                'api_key'       => (string) $data['api_key'],
-                'api_secret'    => (string) $data['api_secret'],
+                // Kept so we can authenticate later token requests as this channel.
+                'setup_token'   => $token,
                 'speaker_slots' => max(1, (int) Arr::get($data, 'speaker_slots', 1)),
                 'recordings'    => (bool) Arr::get($data, 'recordings', false),
             ];
         } catch (\Throwable $e) {
             $this->log->warning('Chirp: config exchange threw', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Ask the service for a LiveKit grant on one of this channel's rooms.
+     *
+     * We send a discussion id, never a room name: the service derives the name
+     * from the channel our setup token resolves to, which is what stops one
+     * forum from addressing another's room on the shared media server. It hands
+     * back the name it chose so server-to-server calls can use the same one.
+     *
+     * @param string $scope 'participant' for a join grant, 'admin' for a
+     *                      sixty-second room-scoped moderation grant.
+     * @return array{endpoint:string,room:string,token:string}|null
+     */
+    public function mintToken(Channel $channel, int $discussionId, string $scope = 'participant', array $participant = []): ?array
+    {
+        if ($channel->setupToken === '' || $discussionId < 1) {
+            return null;
+        }
+
+        $base = rtrim((string) ($this->settings->get('linkrobins-chirp.service-url') ?: 'https://linkrobins.com'), '/');
+
+        try {
+            $response = $this->http->post($base . '/chirp/token', [
+                'form_params' => array_filter([
+                    'token'      => $channel->setupToken,
+                    'discussion' => $discussionId,
+                    'scope'      => $scope,
+                    'identity'   => (string) ($participant['identity'] ?? ''),
+                    'name'       => (string) ($participant['name'] ?? ''),
+                    'publish'    => !empty($participant['publish']) ? '1' : '',
+                ], fn ($v) => $v !== ''),
+                'headers'         => ['Accept' => 'application/json'],
+                'connect_timeout' => 3,
+                'timeout'         => 5,
+                'http_errors'     => false,
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                $this->log->warning('Chirp: token mint failed', ['status' => $response->getStatusCode(), 'scope' => $scope]);
+                return null;
+            }
+
+            $data = json_decode((string) $response->getBody(), true);
+            if (!is_array($data) || empty($data['token']) || empty($data['room'])) {
+                return null;
+            }
+
+            return [
+                'endpoint' => (string) ($data['endpoint'] ?? $channel->endpoint),
+                'room'     => (string) $data['room'],
+                'token'    => (string) $data['token'],
+            ];
+        } catch (\Throwable $e) {
+            $this->log->warning('Chirp: token mint threw', ['error' => $e->getMessage()]);
             return null;
         }
     }
