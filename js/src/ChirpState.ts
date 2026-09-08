@@ -35,7 +35,6 @@ export default class ChirpState {
   room: any = null;
   discussionId: number | null = null;
 
-
   /** Live speaker policy — data-channel truth once joined; null = use the
    *  discussion attribute. */
   speakPolicy: string | null = null;
