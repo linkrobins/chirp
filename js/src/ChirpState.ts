@@ -35,8 +35,6 @@ export default class ChirpState {
   room: any = null;
   discussionId: number | null = null;
 
-  /** The room's server-truth recording flag (recorder bot present). */
-  recording = false;
 
   /** Live speaker policy — data-channel truth once joined; null = use the
    *  discussion attribute. */
@@ -269,7 +267,6 @@ export default class ChirpState {
       .on(RoomEvent.TrackPublished, touch)
       .on(RoomEvent.TrackUnpublished, touch)
       // Driven by the recorder bot joining/leaving (its `recorder` grant
-      // flips the room's ActiveRecording flag server-side) — the REC badge
       // is live truth, not a local guess.
       // Server-side stage moderation (host revoked our publish grant):
       // livekit unpublishes the mic; reflect it in the UI immediately.
@@ -287,10 +284,6 @@ export default class ChirpState {
       // path) — resume playback on the first tap/click anywhere.
       .on(RoomEvent.AudioPlaybackStatusChanged, () => {
         this.ensureAudioPlayback();
-        touch();
-      })
-      .on(RoomEvent.RecordingStatusChanged, (rec: boolean) => {
-        this.recording = rec;
         touch();
       })
       .on(RoomEvent.DataReceived, (payload: Uint8Array) => this.onData(payload))
@@ -321,7 +314,6 @@ export default class ChirpState {
       });
 
     await room.connect(endpoint, token);
-    this.recording = !!room.isRecording;
 
     this.room = room;
     this.discussionId = discussionId;
@@ -485,7 +477,6 @@ export default class ChirpState {
     this.roomPath = '';
     this.canPublish = false;
     this.muted = false;
-    this.recording = false;
     this.speakPolicy = null;
     this.handStatus = 'none';
     this.hands = [];

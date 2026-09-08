@@ -27,7 +27,6 @@ class FakeChirpClient extends ChirpClient
             'endpoint'      => 'wss://chirp.linkrobins.test',
             'setup_token'   => $token,
             'speaker_slots' => 5,
-            'recordings'    => false,
         ];
     }
 

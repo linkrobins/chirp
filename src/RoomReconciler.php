@@ -49,7 +49,7 @@ class RoomReconciler
         foreach (Room::query()->where('mode', 'live')->get() as $room) {
             // A JUST-started room has no server-side presence until its host's
             // WebRTC connect lands (the media server only creates rooms on
-            // first join, unless recording pre-created it) — indistinguishable
+            // first join) — indistinguishable
             // from a dead room to the probe. Without this window a racing
             // second host silently deletes a live-in-a-moment room; the
             // two-channel drill caught exactly that.

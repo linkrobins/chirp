@@ -40,12 +40,6 @@ app.initializers.add('linkrobins-chirp', () => {
       default: 'open',
     })
     .registerSetting({
-      setting: 'linkrobins-chirp.record-rooms',
-      label: app.translator.trans('linkrobins-chirp.admin.record_label'),
-      help: app.translator.trans('linkrobins-chirp.admin.record_help'),
-      type: 'boolean',
-    })
-    .registerSetting({
       setting: 'linkrobins-chirp.appearance',
       label: app.translator.trans('linkrobins-chirp.admin.appearance_label'),
       help: app.translator.trans('linkrobins-chirp.admin.appearance_help'),
@@ -75,11 +69,6 @@ app.initializers.add('linkrobins-chirp', () => {
       'reply'
     )
     .registerPermission(
-      {
-        icon: 'fas fa-trash-can',
-        label: app.translator.trans('linkrobins-chirp.admin.permissions.delete_recording_label'),
-        permission: 'discussion.chirpDeleteRecording',
-      },
       'moderate'
     );
 });

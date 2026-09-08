@@ -56,19 +56,11 @@ linkrobins-chirp:
     channels_confirm_remove: >
       Remove this voice channel? Everyone in it gets disconnected and the
       discussion goes back to normal.
-    record_label: Record live rooms
-    record_help: >
-      When your channel has the recordings add-on, every room is recorded and
-      the audio lands in the discussion as a post when the room ends — stored
-      on this forum, not on our servers. This switch only takes effect when
-      the add-on is active on your channel (re-save your channel key after
-      changing the add-on so this forum notices).
     # Permission-grid labels. These MUST live under admin: — Flarum ships
     # locale by frontend, so a *.forum.* key renders as the raw key here.
     permissions:
       go_live_label: Start a live audio room
       take_mic_label: Speak in a live audio room
-      delete_recording_label: Delete live room recordings
 
   forum:
     go_live: Go live
@@ -127,13 +119,7 @@ linkrobins-chirp:
     policy_open_short: Anyone
     policy_hand_short: Raise hand
     policy_op_short: Author only
-    recording_badge: REC
-    recording_title: This room is being recorded — the audio will be posted in the discussion.
     recorded_badge: RECORDED
-    delete_recording: Delete recording
-    confirm_delete_recording: >
-      Delete this recording for good? Your forum holds the only copy — there
-      is no undo.
     channel_busy_elsewhere: >
       Every channel is broadcasting right now. End one of the live rooms
       first — or add another channel on linkrobins.com to run more rooms

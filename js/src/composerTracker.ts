@@ -1,9 +1,9 @@
 /**
  * Shared composer plumbing for the docked bars (live ChirpBar and the
- * recording bar): publishes how much of the bottom edge Flarum's composer
+ * schedule bar): publishes how much of the bottom edge Flarum's composer
  * covers as --chirp-composer-h (the docked bar rides above it) and flags
  * chirp-composer-full when the composer takes over most of the screen (the
- * bar steps aside). One bar exists at a time — live XOR recording — so the
+ * bar steps aside). One bar exists at a time, so the
  * shared globals can't fight; each bar contributes its own html marker
  * class (chirp-live / chirp-recorded) for the content-padding rules.
  *

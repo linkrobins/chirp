@@ -8,7 +8,6 @@ import m from 'mithril';
 import ChirpState from './ChirpState';
 import ChirpBar from './components/ChirpBar';
 import ChirpDock from './components/ChirpDock';
-import ChirpRecordingBar from './components/ChirpRecordingBar';
 import ChirpRoomStartedNotification from './components/ChirpRoomStartedNotification';
 import ChirpRoomScheduledNotification from './components/ChirpRoomScheduledNotification';
 import ChirpScheduleBar from './components/ChirpScheduleBar';
@@ -154,7 +153,6 @@ app.initializers.add('linkrobins-chirp', () => {
   // its items (tags, title, badges) in one <ul>, so a bar added there lines up
   // beside the tag chips and looks wedged in. Here it gets its own full-width
   // row directly over the conversation it belongs to. When the room is over,
-  // the SAME spot holds the recording bar — where the room was, the recording
   // remains (the live bar owns the spot while a room is actually on).
   extend('flarum/forum/components/DiscussionPage', 'view', function (this: any, vnode: any) {
     const discussion = this.discussion;
@@ -171,11 +169,6 @@ app.initializers.add('linkrobins-chirp', () => {
     if (scheduledAt && new Date(String(scheduledAt)).getTime() > Date.now() - 3 * 3600e3) {
       vnode.children.unshift(m(ChirpScheduleBar, { discussion }));
       return;
-    }
-
-    const recordings = discussion.attribute?.('chirpRecordings') || [];
-    if (recordings.length) {
-      vnode.children.unshift(m(ChirpRecordingBar, { recordings, discussion }));
     }
   });
 

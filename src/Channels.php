@@ -81,17 +81,6 @@ class Channels
         return null;
     }
 
-    /** Recording-delivery auth: which channel does this handle name? */
-    public function byDeliveryKey(string $key): ?Channel
-    {
-        foreach ($this->all() as $channel) {
-            if ($channel->handle !== '' && hash_equals($channel->handle, $key)) {
-                return $channel;
-            }
-        }
-
-        return null;
-    }
 
     /**
      * The channel a room runs on. NULL-channel rows (single-key era) belong

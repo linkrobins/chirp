@@ -5,7 +5,6 @@ namespace LinkRobins\Chirp\Api;
 use Flarum\Api\Context;
 use Flarum\Api\Schema;
 use Flarum\Settings\SettingsRepositoryInterface;
-use LinkRobins\Chirp\Recording;
 use LinkRobins\Chirp\Schedule;
 use LinkRobins\Chirp\Room;
 
@@ -27,7 +26,6 @@ class DiscussionFields
 
     /** @var array<int, list<array{id: int, duration: int, recordedAt: string}>>|null */
     /** @var array<int, array<int, array{id:int,duration:int,recordedAt:?string}>> */
-    private array $recordings = [];
 
     /** @var array<int, string>|null discussion_id => ISO starts_at; null = not fetched */
     private ?array $schedules = null;
@@ -146,75 +144,9 @@ class DiscussionFields
                         return null;
                     }
                 }),
-
-            Schema\Boolean::make('chirpCanDeleteRecordings')
-                ->get(function ($discussion, $context) {
-                    try {
-                        return $context->getActor()->can('chirpDeleteRecording', $discussion);
-                    } catch (\Throwable) {
-                        return false;
-                    }
-                }),
-
-            Schema\Arr::make('chirpRecordings')
-                ->get(function ($discussion, $context) {
-                    try {
-                        return $this->recordingsFor((int) $discussion->id, $context);
-                    } catch (\Throwable) {
-                        return [];
-                    }
-                }),
         ];
     }
 
-    /**
-     * Delivered recordings, keyed by discussion.
-     *
-     * Loaded for EVERY discussion in the response in one `whereIn`, primed
-     * from the context's search results the first time any row asks. That
-     * threads between the two failure modes the reviews each caught: the
-     * original shape read the whole delivered table on every list response
-     * (unbounded in the size of the archive), and a naive per-discussion
-     * lookup is one query per row. This is a single query bounded by page
-     * size, over the (discussion_id, status) index.
-     *
-     * A single-discussion response has no search results, so it falls back
-     * to a point lookup for the one id — same query, no collection to prime
-     * from.
-     */
-    private function recordingsFor(int $discussionId, Context $context): array
-    {
-        if (!array_key_exists($discussionId, $this->recordings)) {
-            $ids = $context->getSearchResults()?->getResults()->pluck('id')->all() ?? [];
-            $ids = array_values(array_unique(array_map('intval', $ids)));
-
-            if (!in_array($discussionId, $ids, true)) {
-                $ids[] = $discussionId;
-            }
-
-            // Prime a null entry per id so a discussion with no recordings
-            // is a cache hit rather than a repeat query.
-            foreach ($ids as $id) {
-                $this->recordings[$id] ??= [];
-            }
-
-            $rows = Recording::query()
-                ->whereIn('discussion_id', $ids)
-                ->where('status', 'delivered')
-                ->orderBy('id')
-                ->get(['id', 'discussion_id', 'duration_seconds', 'delivered_at']);
-
-            foreach ($rows as $row) {
-                $this->recordings[(int) $row->discussion_id][] = [
-                    'id'         => (int) $row->id,
-                    'duration'   => (int) $row->duration_seconds,
-                    'recordedAt' => optional($row->delivered_at)->toIso8601String(),
-                ];
-            }
-        }
-
-        return $this->recordings[$discussionId] ?? [];
-    }
 
     /** Upcoming (grace-windowed) schedules, one query per request. */
     private function scheduleFor(int $discussionId): ?string

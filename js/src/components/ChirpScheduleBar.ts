@@ -19,7 +19,7 @@ interface ChirpScheduleBarAttrs extends ComponentAttrs {
 export default class ChirpScheduleBar extends Component<ChirpScheduleBarAttrs> {
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  // Same persistence as the live and recording bars: sticky on desktop,
+  // Same persistence as the live bar: sticky on desktop,
   // bottom-docked on phones, composer-aware — the countdown follows you.
   private tracker = new ComposerTracker('chirp-scheduled');
 

@@ -86,21 +86,12 @@ html.chirp-blend {
   animation: none;
 }
 
-.ChirpRecordingBar-meta {
-  white-space: nowrap;
-}
 
-.ChirpRecordingBar-player {
-  display: block;
-  flex: 1 1 240px;
-  min-width: 0;
-  height: 36px;
-}
 
 // The recording picker must READ as a control: iOS renders bare selects as
 // plain text with zero affordance, so appearance goes off and the pill +
 // chevron are ours.
-.ChirpRecordingBar-pickwrap {
+.ChirpBar-pickwrap {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -116,7 +107,7 @@ html.chirp-blend {
   }
 }
 
-.ChirpRecordingBar-pick {
+.ChirpBar-pick {
   appearance: none;
   -webkit-appearance: none;
   width: auto;
@@ -141,19 +132,16 @@ html.chirp-blend {
 @media (max-width: 767px) {
   // The picker gets its own full row — a full-width pill is unmistakably a
   // button, and the tap target grows to match.
-  .ChirpRecordingBar-pickwrap {
+  .ChirpBar-pickwrap {
     flex-basis: 100%;
   }
 
-  .ChirpRecordingBar-pick {
+  .ChirpBar-pick {
     width: 100%;
     max-width: none;
     height: 36px;
   }
 
-  .ChirpRecordingBar-player {
-    flex-basis: 100%;
-  }
 }
 
 .ChirpBar {
@@ -372,7 +360,7 @@ html.chirp-blend {
       justify-content: center;
     }
 
-    .ChirpRecordingBar-pickwrap {
+    .ChirpBar-pickwrap {
       flex: 1 1 auto;
     }
 
@@ -638,15 +626,7 @@ html.chirp-blend {
   max-width: 140px;
 }
 
-.ChirpRecordingBar-delete .icon {
-  color: var(--muted-color);
-  transition: color 0.15s ease;
-}
 
-.ChirpRecordingBar-delete .Button:hover .icon,
-.ChirpRecordingBar-delete .Button:focus .icon {
-  color: var(--chirp-hot);
-}
 
 // VOICE: the persistent-channel twin of the LIVE badge — cool accent, no
 // pulse (a place, not an event).

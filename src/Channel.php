@@ -24,7 +24,6 @@ class Channel
         public readonly string $endpoint,
         public readonly string $setupToken,
         public readonly int $speakerSlots,
-        public readonly bool $recordings,
         public readonly bool $connected,
     ) {
     }
@@ -42,7 +41,6 @@ class Channel
             endpoint: (string) ($data['endpoint'] ?? ''),
             setupToken: (string) ($data['setup_token'] ?? ''),
             speakerSlots: max(1, (int) ($data['speaker_slots'] ?? 1)),
-            recordings: (bool) ($data['recordings'] ?? false),
             connected: (bool) ($data['connected'] ?? false),
         );
     }
@@ -54,7 +52,6 @@ class Channel
             'endpoint'      => $this->endpoint,
             'setup_token'   => $this->setupToken,
             'speaker_slots' => $this->speakerSlots,
-            'recordings'    => $this->recordings,
             'connected'     => $this->connected,
         ];
     }

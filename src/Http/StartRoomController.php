@@ -19,7 +19,6 @@ use LinkRobins\Chirp\Exception\NotConfiguredException;
 use LinkRobins\Chirp\ChirpClient;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Notification\RoomStartedBlueprint;
-use LinkRobins\Chirp\Recording;
 use LinkRobins\Chirp\Schedule;
 use LinkRobins\Chirp\Room;
 use LinkRobins\Chirp\RoomReconciler;
@@ -51,12 +50,6 @@ class StartRoomController implements RequestHandlerInterface
     ) {
     }
 
-    /** Recording is on when THIS channel pays for it and the admin wants it. */
-    private function recordingActive(Channel $channel): bool
-    {
-        return $channel->recordings
-            && $this->settings->get('linkrobins-chirp.record-rooms') !== '0';
-    }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -73,7 +66,7 @@ class StartRoomController implements RequestHandlerInterface
 
         $actor->assertCan('chirpStart', $discussion);
 
-        // 'live' = the event shape (starts, ends, leaves a recording);
+        // 'live' = the event shape (starts and ends);
         // 'persistent' = an ADMIN-designated voice channel — a standing
         // Discord-style place that stays open until an admin removes the
         // designation. The two occupy SEPARATE slots on a channel: a
@@ -87,7 +80,6 @@ class StartRoomController implements RequestHandlerInterface
         [$room, $channel] = $this->openRoom($discussion, $actor, $mode);
 
         $this->consumeSchedule($discussion);
-        $this->maybeStartRecording($discussion, $actor, $mode, $channel);
         $this->notifyFollowers($discussion, $actor, $mode);
 
         $grant = $this->service->mintToken($channel, (int) $discussion->id, 'participant', [
@@ -175,21 +167,6 @@ class StartRoomController implements RequestHandlerInterface
      * the file arrives minutes later). Voice channels are places, not shows —
      * they are never recorded.
      */
-    private function maybeStartRecording(Discussion $discussion, User $actor, string $mode, Channel $channel): void
-    {
-        if ($mode !== 'live' || !$this->recordingActive($channel)) {
-            return;
-        }
-
-        $this->rooms->createRoom($channel, (int) $discussion->id, ['record' => true]);
-
-        Recording::create([
-            'discussion_id' => $discussion->id,
-            'user_id'       => $actor->id,
-            'status'        => 'pending',
-            'created_at'    => Carbon::now(),
-        ]);
-    }
 
     /** Fail-soft: a notification hiccup must never block going live. */
     private function notifyFollowers(Discussion $discussion, User $actor, string $mode): void
