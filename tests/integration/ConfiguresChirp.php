@@ -30,7 +30,6 @@ trait ConfiguresChirp
                 'endpoint'      => 'wss://chirp.linkrobins.test',
                 'setup_token'   => 'k' . ($i + 1),
                 'speaker_slots' => 5,
-                'recordings'    => false,
                 'connected'     => true,
             ];
         }

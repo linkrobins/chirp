@@ -27,7 +27,7 @@ const WAVE_BARS = 14;
 export default class ChirpBar extends Component<ChirpBarAttrs> {
   // Phones dock the bar over the content, so the page needs bottom padding
   // while one is mounted (see forum.less). The composer plumbing is shared
-  // with the recording bar — see composerTracker.ts.
+  // with the schedule bar — see composerTracker.ts.
   private tracker = new ComposerTracker('chirp-live');
 
   oncreate(vnode: Mithril.VnodeDOM<ChirpBarAttrs>) {
@@ -84,7 +84,6 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
         // ── Live badge + waveform ───────────────────────────────────────────
         m('.ChirpBar-live', [
           mode === 'persistent' ? m('span.ChirpBadge.ChirpBadge--voice', t('voice_badge')) : m('span.ChirpBadge', t('live_badge')),
-          joined && state.recording ? m('span.ChirpBadge.ChirpBadge--rec', { title: t('recording_title') }, t('recording_badge')) : null,
           joined && state.reconnecting ? m('span.ChirpBadge.ChirpBadge--reconnecting', t('reconnecting')) : null,
           m(
             '.ChirpWave',
@@ -263,9 +262,9 @@ export default class ChirpBar extends Component<ChirpBarAttrs> {
       // default, the host opens up or locks down mid-show).
       actions.push(
         m(
-          'span.ChirpRecordingBar-pickwrap',
+          'span.ChirpBar-pickwrap',
           m(
-            'select.ChirpRecordingBar-pick.ChirpBar-policy',
+            'select.ChirpBar-pick.ChirpBar-policy',
             { value: policy, onchange: (e: Event) => state.setPolicy(id, (e.target as HTMLSelectElement).value) },
             [
               m('option', { value: 'open' }, t('policy_open_short')),

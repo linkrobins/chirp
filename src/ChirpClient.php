@@ -42,8 +42,7 @@ class ChirpClient
 
         try {
             $response = $this->http->post($base . '/chirp/config', [
-                // forum_url is the DELIVERY address for finished recordings —
-                // the service POSTs signed notifications back to it.
+                // forum_url identifies this forum to the service.
                 'form_params'     => ['token' => $token, 'forum_url' => (string) $this->config->url()],
                 'headers'         => ['Accept' => 'application/json'],
                 'connect_timeout' => 3,
@@ -77,7 +76,6 @@ class ChirpClient
                 // Kept so we can authenticate later token requests as this channel.
                 'setup_token'   => $token,
                 'speaker_slots' => max(1, (int) Arr::get($data, 'speaker_slots', 1)),
-                'recordings'    => (bool) Arr::get($data, 'recordings', false),
             ];
         } catch (\Throwable $e) {
             $this->log->warning('Chirp: config exchange threw', ['error' => $e->getMessage()]);

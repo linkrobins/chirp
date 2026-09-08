@@ -70,7 +70,6 @@ class ChirpClientTest extends MockeryTestCase
             // Kept so later token requests can authenticate as this channel.
             'setup_token'   => 'CHANNEL-KEY',
             'speaker_slots' => 6,
-            'recordings'    => false, // absent in the response = add-on off
         ], $config);
 
         // The key travels as a form param to the default service URL.

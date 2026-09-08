@@ -37,18 +37,6 @@ return [
 
     new Extend\Locales(__DIR__ . '/locale'),
 
-    // Recordings live on their own PRIVATE disk (no 'url' key — they are
-    // never publicly addressable; playback goes through the visibility-gated
-    // stream endpoint). Registering a disk instead of touching the storage
-    // path with native fopen/unlink is what makes the backend swappable —
-    // an operator can point this at S3 with a driver, and the code above it
-    // doesn't change (v1.1.4 review, findings 1-3; NB Flarum ships no
-    // 'local' disk, so the review's Storage::disk('local') would not have
-    // resolved — a registered disk is the Flarum-2 way).
-    (new Extend\Filesystem())
-        ->disk('chirp-recordings', function (\Flarum\Foundation\Paths $paths) {
-            return ['root' => $paths->storage . '/chirp-recordings'];
-        }),
 
     // Service URL is admin-overridable for testing; the channel keys + resolved
     // credentials (the 'channels' JSON) are server-only settings, never
@@ -62,21 +50,8 @@ return [
         ->default('linkrobins-chirp.appearance', 'brand')
         // Record rooms when the channel's add-on allows it. '1' by default:
         // buying the add-on should Just Work without a second switch hunt.
-        ->default('linkrobins-chirp.record-rooms', '1')
         // Forum-wide default speaker policy for NEW rooms (host can flip live).
         ->default('linkrobins-chirp.default-speak-policy', 'open')
-        // Ceiling on a delivered recording (2 GB), enforced before and during
-        // the transfer. Server-only: an operator can raise it for a forum that
-        // really does run marathon shows.
-        //
-        // The literal is deliberate — this file is evaluated on EVERY request
-        // during extension boot, so referencing a class constant here makes
-        // the whole forum (not just Chirp) 500 if that class can't autoload
-        // for any reason. Installing over a running PHP-FPM with a stale
-        // opcache does exactly that, which is a miserable first-install
-        // experience. Keep in step with FetchRecordingJob::DEFAULT_MAX_BYTES,
-        // which the job asserts against.
-        ->default('linkrobins-chirp.max-recording-bytes', '2147483648')
         ->serializeToForum('chirpConnected', 'linkrobins-chirp.connected', fn ($v) => $v === '1')
         ->serializeToForum('chirpAppearance', 'linkrobins-chirp.appearance'),
 
@@ -97,15 +72,10 @@ return [
 
     // Room lifecycle + join tokens. Start/end are writes with explicit
     // permission gates; token is a POST (it allocates a speaker slot).
-    // Recordings: the service delivers finished files (HMAC-signed, so no
-    // Flarum auth), and playback streams through a visibility check.
     (new Extend\Routes('api'))
         ->post('/chirp/rooms', 'chirp.rooms.start', StartRoomController::class)
         ->delete('/chirp/rooms/{id:\d+}', 'chirp.rooms.end', EndRoomController::class)
         ->post('/chirp/rooms/{id:\d+}/token', 'chirp.rooms.token', JoinTokenController::class)
-        ->post('/chirp/recordings', 'chirp.recordings.receive', \LinkRobins\Chirp\Http\ReceiveRecordingController::class)
-        ->get('/chirp/recordings/{id:\d+}/audio', 'chirp.recordings.audio', \LinkRobins\Chirp\Http\StreamRecordingController::class)
-        ->delete('/chirp/recordings/{id:\d+}', 'chirp.recordings.delete', \LinkRobins\Chirp\Http\DeleteRecordingController::class)
         // Speaker policies: the host flips the room's policy live; hands are
         // raised/resolved server-side (the token endpoint enforces), with
         // data-channel pings making the UI instant.
@@ -124,11 +94,6 @@ return [
     (new Extend\Notification())
         ->type(\LinkRobins\Chirp\Notification\RoomStartedBlueprint::class, ['alert'])
         ->type(\LinkRobins\Chirp\Notification\RoomScheduledBlueprint::class, ['alert']),
-
-    // The delivery receiver is a server-to-server webhook (HMAC-signed by
-    // the service) — Flarum's CSRF layer would 400 it before our auth runs.
-    (new Extend\Csrf())
-        ->exemptRoute('chirp.recordings.receive'),
 
     // Expected domain failures → clean 4xx with locale-keyed messages.
     (new Extend\ErrorHandling())

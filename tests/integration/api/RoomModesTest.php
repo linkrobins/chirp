@@ -89,14 +89,12 @@ class RoomModesTest extends TestCase
         $this->assertEquals(200, $ok->getStatusCode());
         $this->assertEquals('persistent', $this->database()->table('chirp_rooms')->value('mode'));
         // Voice channels are never recorded — no pending attribution row.
-        $this->assertEquals(0, $this->database()->table('chirp_recordings')->count());
     }
 
     #[Test]
     public function voice_channels_do_not_block_going_live_and_coexist(): void
     {
         $this->configure();
-        $this->setting('linkrobins-chirp.recordings-available', '1');
 
         // One channel = one standing voice channel…
         $r = $this->send($this->request('POST', '/api/chirp/rooms', ['authenticatedAs' => 1, 'json' => ['discussionId' => 2, 'mode' => 'persistent']]));
