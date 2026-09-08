@@ -49,4 +49,19 @@ class FakeChirpClient extends ChirpClient
 
         return $grant;
     }
+
+    /** Every room operation asked for, so tests can assert the derived name. */
+    public array $roomOps = [];
+
+    public function roomOp(Channel $channel, int $discussionId, string $action, array $metadata = []): ?array
+    {
+        if ($channel->setupToken === '' || $discussionId < 1) {
+            return null;
+        }
+
+        $room = $channel->handle . '-d' . $discussionId;
+        $this->roomOps[] = ['room' => $room, 'action' => $action, 'metadata' => $metadata];
+
+        return ['room' => $room, 'exists' => true, 'created' => true, 'deleted' => true];
+    }
 }

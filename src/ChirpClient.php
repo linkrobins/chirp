@@ -141,4 +141,57 @@ class ChirpClient
             return null;
         }
     }
+
+    /**
+     * Ask the service to create, delete or check one of this channel's rooms.
+     *
+     * These three cannot ride the room-scoped admin grant the way moderation
+     * does. LiveKit checks `roomAdmin` against the room named in the token, but
+     * `roomCreate` and `roomList` are instance-wide, so a token carrying them
+     * works on every room on a shared server regardless of its claim. A drill
+     * showed exactly that: one tenant's grant deleted another tenant's room. So
+     * the service performs them with a grant that never leaves it, on a room it
+     * derives from our channel.
+     *
+     * @param string $action create | delete | exists
+     */
+    public function roomOp(Channel $channel, int $discussionId, string $action, array $metadata = []): ?array
+    {
+        if ($channel->setupToken === '' || $discussionId < 1) {
+            return null;
+        }
+
+        $base = rtrim((string) ($this->settings->get('linkrobins-chirp.service-url') ?: 'https://linkrobins.com'), '/');
+
+        try {
+            $params = [
+                'token'      => $channel->setupToken,
+                'discussion' => $discussionId,
+                'action'     => $action,
+            ];
+            if ($metadata !== []) {
+                $params['metadata'] = $metadata;
+            }
+
+            $response = $this->http->post($base . '/chirp/room', [
+                'form_params'     => $params,
+                'headers'         => ['Accept' => 'application/json'],
+                'connect_timeout' => 3,
+                'timeout'         => 5,
+                'http_errors'     => false,
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                $this->log->warning('Chirp: room op failed', ['status' => $response->getStatusCode(), 'action' => $action]);
+                return null;
+            }
+
+            $data = json_decode((string) $response->getBody(), true);
+
+            return is_array($data) ? $data : null;
+        } catch (\Throwable $e) {
+            $this->log->warning('Chirp: room op threw', ['error' => $e->getMessage(), 'action' => $action]);
+            return null;
+        }
+    }
 }

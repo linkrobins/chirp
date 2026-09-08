@@ -57,12 +57,14 @@ class RoomService
         return $count;
     }
 
-    /** Best-effort room delete — kicks every participant. */
+    /**
+     * Best-effort room delete — kicks every participant. Goes through the
+     * service, because DeleteRoom needs an instance-wide grant that must not be
+     * handed to a forum on a shared server.
+     */
     public function deleteRoom(Channel $channel, int $discussionId): void
     {
-        if ($grant = $this->grant($channel, $discussionId)) {
-            $this->call($channel, $grant, 'DeleteRoom', ['room' => $grant['room']]);
-        }
+        $this->service->roomOp($channel, $discussionId, 'delete');
     }
 
     /** Stage moderation: revoke the publish grant — the server unpublishes
@@ -125,22 +127,9 @@ class RoomService
      */
     public function roomExists(Channel $channel, int $discussionId): ?bool
     {
-        if (!$grant = $this->grant($channel, $discussionId)) {
-            return null;
-        }
+        $data = $this->service->roomOp($channel, $discussionId, 'exists');
 
-        $data = $this->call($channel, $grant, 'ListRooms', ['names' => [$grant['room']]]);
-        if ($data === null) {
-            return null;
-        }
-
-        foreach (($data['rooms'] ?? []) as $r) {
-            if (($r['name'] ?? '') === $grant['room']) {
-                return true;
-            }
-        }
-
-        return false;
+        return $data === null ? null : (bool) ($data['exists'] ?? false);
     }
 
     /**
@@ -151,12 +140,7 @@ class RoomService
      */
     public function createRoom(Channel $channel, int $discussionId, array $metadata): void
     {
-        if ($grant = $this->grant($channel, $discussionId)) {
-            $this->call($channel, $grant, 'CreateRoom', [
-                'name'     => $grant['room'],
-                'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES),
-            ]);
-        }
+        $this->service->roomOp($channel, $discussionId, 'create', $metadata);
     }
 
     /**
