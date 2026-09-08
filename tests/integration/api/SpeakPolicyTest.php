@@ -12,6 +12,7 @@ namespace LinkRobins\Chirp\Tests\integration\api;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use LinkRobins\Chirp\Tests\integration\ConfiguresChirp;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
@@ -24,6 +25,7 @@ use PHPUnit\Framework\Attributes\Test;
 class SpeakPolicyTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
+    use ConfiguresChirp;
 
     public function setUp(): void
     {
@@ -50,11 +52,7 @@ class SpeakPolicyTest extends TestCase
 
     private function configure(): void
     {
-        $this->setting('linkrobins-chirp.connected', '1');
-        $this->setting('linkrobins-chirp.endpoint', 'wss://chirp-x.linkrobins.com');
-        $this->setting('linkrobins-chirp.api-key', 'LKtest');
-        $this->setting('linkrobins-chirp.api-secret', 'ssssssssssssssssssssssssssssssssssssssss');
-        $this->setting('linkrobins-chirp.speaker-slots', '5');
+        $this->connectChannels();
     }
 
     private function setPolicy(string $policy): void

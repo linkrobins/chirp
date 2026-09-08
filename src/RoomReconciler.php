@@ -59,7 +59,7 @@ class RoomReconciler
 
             $channel = $this->channels->forRoom($room);
 
-            if ($channel && $this->rooms->roomExists($channel, Room::nameFor($room->discussion_id)) === false) {
+            if ($channel && $this->rooms->roomExists($channel, (int) $room->discussion_id) === false) {
                 $room->delete();
                 $cleared++;
             }

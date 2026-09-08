@@ -12,11 +12,13 @@ namespace LinkRobins\Chirp\Tests\integration\api;
 use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
+use LinkRobins\Chirp\Tests\integration\ConfiguresChirp;
 use PHPUnit\Framework\Attributes\Test;
 
 class RoomsTest extends TestCase
 {
     use RetrievesAuthorizedUsers;
+    use ConfiguresChirp;
 
     public function setUp(): void
     {
@@ -39,11 +41,7 @@ class RoomsTest extends TestCase
 
     private function configure(): void
     {
-        $this->setting('linkrobins-chirp.connected', '1');
-        $this->setting('linkrobins-chirp.endpoint', 'wss://chirp-x.linkrobins.com');
-        $this->setting('linkrobins-chirp.api-key', 'LKtest');
-        $this->setting('linkrobins-chirp.api-secret', 'ssssssssssssssssssssssssssssssssssssssss');
-        $this->setting('linkrobins-chirp.speaker-slots', '5');
+        $this->connectChannels();
     }
 
     #[Test]
@@ -102,12 +100,15 @@ class RoomsTest extends TestCase
 
         $this->assertEquals(200, $response->getStatusCode());
         $body = json_decode((string) $response->getBody(), true);
-        $this->assertSame('wss://chirp-x.linkrobins.com', $body['endpoint']);
+        $this->assertSame('wss://chirp.linkrobins.test', $body['endpoint']);
 
-        // The token is a signed LiveKit JWT for room d1 with the publish grant.
-        $payload = json_decode(base64_decode(strtr(explode('.', $body['token'])[1], '-_', '+/')), true);
-        $this->assertSame('d1', $payload['video']['room']);
-        $this->assertTrue($payload['video']['canPublish']);
+        // The grant comes from the service now, so there is no local signature
+        // to verify. What matters is that the forum asked for a publish grant
+        // on its own channel's room, which the stub records.
+        $minted = $this->app()->getContainer()->make(\LinkRobins\Chirp\ChirpClient::class)->minted;
+        $last   = end($minted);
+        $this->assertSame('ch-one-d1', $last['room']);
+        $this->assertTrue($last['participant']['publish']);
 
         // The room row exists — the channel is now busy.
         $this->assertEquals(1, $this->database()->table('chirp_rooms')->count());
@@ -164,8 +165,10 @@ class RoomsTest extends TestCase
         $body = json_decode((string) $response->getBody(), true);
         $this->assertFalse($body['canPublish']);
 
-        $payload = json_decode(base64_decode(strtr(explode('.', $body['token'])[1], '-_', '+/')), true);
-        $this->assertFalse($payload['video']['canPublish']);
-        $this->assertTrue($payload['video']['canSubscribe']);
+        // A listener's request must not ask the service for publish rights.
+        $minted = $this->app()->getContainer()->make(\LinkRobins\Chirp\ChirpClient::class)->minted;
+        $last   = end($minted);
+        $this->assertSame('ch-one-d1', $last['room']);
+        $this->assertEmpty($last['participant']['publish']);
     }
 }

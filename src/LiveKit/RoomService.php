@@ -4,16 +4,20 @@ namespace LinkRobins\Chirp\LiveKit;
 
 use GuzzleHttp\Client;
 use LinkRobins\Chirp\Channel;
+use LinkRobins\Chirp\ChirpClient;
 use Psr\Log\LoggerInterface;
 
 /**
  * Thin client for the LiveKit server APIs the extension needs (twirp over
- * HTTPS on the signaling host): counting current publishers for speaker-
- * slot enforcement, moderation, and deleting the room when the host ends it
+ * HTTPS on the signaling host): counting current publishers for speaker-slot
+ * enforcement, moderation, and deleting the room when the host ends it
  * (disconnects every participant immediately).
  *
- * Multi-channel: every call is scoped to the Channel the room lives on —
- * different channels are different servers with different credentials.
+ * Every forum now shares one media server, so the room NAME carries the tenant
+ * and this class never chooses one. It passes a discussion id to the service,
+ * which derives the name from the channel and returns it along with a
+ * sixty-second admin grant scoped to exactly that room. That is what stops one
+ * forum from moderating another's room: we could not name it if we tried.
  *
  * Fail-soft on reads: if the count call fails we return null and the caller
  * decides — for slot enforcement that means fail-CLOSED (treat as full) so a
@@ -21,17 +25,24 @@ use Psr\Log\LoggerInterface;
  */
 class RoomService
 {
+    /** Grants are good for a minute; one lookup serves a burst of calls. */
+    private array $grants = [];
+
     public function __construct(
-        protected AccessToken $tokens,
+        protected ChirpClient $service,
         protected Client $http,
         protected LoggerInterface $log,
     ) {
     }
 
     /** Number of participants currently allowed to publish, or null on failure. */
-    public function publisherCount(Channel $channel, string $room): ?int
+    public function publisherCount(Channel $channel, int $discussionId): ?int
     {
-        $data = $this->call($channel, 'ListParticipants', $room, ['room' => $room]);
+        if (!$grant = $this->grant($channel, $discussionId)) {
+            return null;
+        }
+
+        $data = $this->call($channel, $grant, 'ListParticipants', ['room' => $grant['room']]);
         if ($data === null) {
             return null;
         }
@@ -46,27 +57,37 @@ class RoomService
         return $count;
     }
 
-    /** Best-effort room delete — kicks every participant. */
-    public function deleteRoom(Channel $channel, string $room): void
+    /**
+     * Best-effort room delete — kicks every participant. Goes through the
+     * service, because DeleteRoom needs an instance-wide grant that must not be
+     * handed to a forum on a shared server.
+     */
+    public function deleteRoom(Channel $channel, int $discussionId): void
     {
-        $this->call($channel, 'DeleteRoom', $room, ['room' => $room]);
+        $this->service->roomOp($channel, $discussionId, 'delete');
     }
 
     /** Stage moderation: revoke the publish grant — the server unpublishes
      *  their tracks and the client can't re-take the mic. */
-    public function revokePublish(Channel $channel, string $room, string $identity): void
+    public function revokePublish(Channel $channel, int $discussionId, string $identity): void
     {
-        $this->call($channel, 'UpdateParticipant', $room, [
-            'room'       => $room,
+        if (!$grant = $this->grant($channel, $discussionId)) {
+            return;
+        }
+
+        $this->call($channel, $grant, 'UpdateParticipant', [
+            'room'       => $grant['room'],
             'identity'   => $identity,
             'permission' => ['can_subscribe' => true, 'can_publish' => false, 'can_publish_data' => true],
         ]);
     }
 
     /** Stage moderation: remove a participant from the room entirely. */
-    public function removeParticipant(Channel $channel, string $room, string $identity): void
+    public function removeParticipant(Channel $channel, int $discussionId, string $identity): void
     {
-        $this->call($channel, 'RemoveParticipant', $room, ['room' => $room, 'identity' => $identity]);
+        if ($grant = $this->grant($channel, $discussionId)) {
+            $this->call($channel, $grant, 'RemoveParticipant', ['room' => $grant['room'], 'identity' => $identity]);
+        }
     }
 
     /**
@@ -76,17 +97,21 @@ class RoomService
      * unmute themselves and keep talking like a person, and a repeat
      * offender gets kicked instead.
      */
-    public function muteAudio(Channel $channel, string $room, string $identity): void
+    public function muteAudio(Channel $channel, int $discussionId, string $identity): void
     {
-        $data = $this->call($channel, 'ListParticipants', $room, ['room' => $room]);
+        if (!$grant = $this->grant($channel, $discussionId)) {
+            return;
+        }
+
+        $data = $this->call($channel, $grant, 'ListParticipants', ['room' => $grant['room']]);
         foreach (($data['participants'] ?? []) as $p) {
             if (($p['identity'] ?? '') !== $identity) {
                 continue;
             }
             foreach (($p['tracks'] ?? []) as $track) {
                 if (strtoupper((string) ($track['type'] ?? '')) === 'AUDIO' && !empty($track['sid'])) {
-                    $this->call($channel, 'MutePublishedTrack', $room, [
-                        'room'      => $room,
+                    $this->call($channel, $grant, 'MutePublishedTrack', [
+                        'room'      => $grant['room'],
                         'identity'  => $identity,
                         'track_sid' => $track['sid'],
                         'muted'     => true,
@@ -100,20 +125,11 @@ class RoomService
      * Is this room actually live on the server? true/false, or null when the
      * API can't answer (caller decides the failure posture).
      */
-    public function roomExists(Channel $channel, string $room): ?bool
+    public function roomExists(Channel $channel, int $discussionId): ?bool
     {
-        $data = $this->call($channel, 'ListRooms', $room, ['names' => [$room]]);
-        if ($data === null) {
-            return null;
-        }
+        $data = $this->service->roomOp($channel, $discussionId, 'exists');
 
-        foreach (($data['rooms'] ?? []) as $r) {
-            if (($r['name'] ?? '') === $room) {
-                return true;
-            }
-        }
-
-        return false;
+        return $data === null ? null : (bool) ($data['exists'] ?? false);
     }
 
     /**
@@ -122,15 +138,30 @@ class RoomService
      * LiveKit side; fail-soft here — a failed call means the room simply
      * starts unrecorded, never that going live breaks.
      */
-    public function createRoom(Channel $channel, string $room, array $metadata): void
+    public function createRoom(Channel $channel, int $discussionId, array $metadata): void
     {
-        $this->call($channel, 'CreateRoom', $room, [
-            'name'     => $room,
-            'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES),
-        ]);
+        $this->service->roomOp($channel, $discussionId, 'create', $metadata);
     }
 
-    protected function call(Channel $channel, string $method, string $room, array $body): ?array
+    /**
+     * The room name and admin token for one discussion, from the service.
+     * Memoized for the request so a burst of moderation calls costs one round
+     * trip rather than one each.
+     *
+     * @return array{endpoint:string,room:string,token:string}|null
+     */
+    protected function grant(Channel $channel, int $discussionId): ?array
+    {
+        $key = $channel->handle . ':' . $discussionId;
+
+        if (!array_key_exists($key, $this->grants)) {
+            $this->grants[$key] = $this->service->mintToken($channel, $discussionId, 'admin');
+        }
+
+        return $this->grants[$key];
+    }
+
+    protected function call(Channel $channel, array $grant, string $method, array $body): ?array
     {
         $base = $channel->httpEndpoint();
         if ($base === '') {
@@ -141,7 +172,7 @@ class RoomService
             $response = $this->http->post($base . '/twirp/livekit.RoomService/' . $method, [
                 'json'            => $body,
                 'headers'         => [
-                    'Authorization' => 'Bearer ' . $this->tokens->forRoomAdmin($channel, $room),
+                    'Authorization' => 'Bearer ' . $grant['token'],
                     'Accept'        => 'application/json',
                 ],
                 'connect_timeout' => 3,
@@ -151,6 +182,7 @@ class RoomService
 
             if ($response->getStatusCode() !== 200) {
                 $this->log->warning('Chirp: room API call failed', ['method' => $method, 'status' => $response->getStatusCode()]);
+
                 return null;
             }
 
@@ -159,6 +191,7 @@ class RoomService
             return is_array($data) ? $data : null;
         } catch (\Throwable $e) {
             $this->log->warning('Chirp: room API call threw', ['method' => $method, 'error' => $e->getMessage()]);
+
             return null;
         }
     }

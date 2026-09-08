@@ -54,9 +54,8 @@ class ChirpClientTest extends MockeryTestCase
     {
         $client = $this->client([
             new Response(200, [], json_encode([
-                'endpoint'      => 'wss://chirp-me.linkrobins.com',
-                'api_key'       => 'LKabc',
-                'api_secret'    => 'secret',
+                'endpoint'      => 'wss://chirp.linkrobins.com',
+                'token_minting' => 'service',
                 'speaker_slots' => 6,
             ])),
         ]);
@@ -64,12 +63,12 @@ class ChirpClientTest extends MockeryTestCase
         $config = $client->fetchConfig('CHANNEL-KEY');
 
         $this->assertSame([
-            // No handle in the response (older service) → stable digest of
-            // the endpoint stands in.
-            'handle'        => substr(sha1('wss://chirp-me.linkrobins.com'), 0, 12),
-            'endpoint'      => 'wss://chirp-me.linkrobins.com',
-            'api_key'       => 'LKabc',
-            'api_secret'    => 'secret',
+            // No handle in the response → stable digest of the endpoint
+            // stands in.
+            'handle'        => substr(sha1('wss://chirp.linkrobins.com'), 0, 12),
+            'endpoint'      => 'wss://chirp.linkrobins.com',
+            // Kept so later token requests can authenticate as this channel.
+            'setup_token'   => 'CHANNEL-KEY',
             'speaker_slots' => 6,
             'recordings'    => false, // absent in the response = add-on off
         ], $config);
@@ -84,11 +83,7 @@ class ChirpClientTest extends MockeryTestCase
     public function missing_slots_default_to_one(): void
     {
         $client = $this->client([
-            new Response(200, [], json_encode([
-                'endpoint'   => 'wss://x',
-                'api_key'    => 'k',
-                'api_secret' => 's',
-            ])),
+            new Response(200, [], json_encode(['endpoint' => 'wss://x'])),
         ]);
 
         $this->assertSame(1, $client->fetchConfig('KEY')['speaker_slots']);
@@ -103,9 +98,26 @@ class ChirpClientTest extends MockeryTestCase
     }
 
     #[Test]
-    public function a_response_missing_credentials_is_null(): void
+    public function a_response_missing_an_endpoint_is_null(): void
     {
-        $client = $this->client([new Response(200, [], json_encode(['endpoint' => 'wss://x']))]);
+        $client = $this->client([new Response(200, [], json_encode(['handle' => 'me']))]);
+
+        $this->assertNull($client->fetchConfig('KEY'));
+    }
+
+    #[Test]
+    public function a_service_still_handing_out_a_signing_secret_is_refused(): void
+    {
+        // That answer comes from a service still running per-channel media
+        // servers. This build has no local signer, so connecting would leave
+        // the forum addressing a container that no longer exists.
+        $client = $this->client([
+            new Response(200, [], json_encode([
+                'endpoint'   => 'wss://chirp-me.linkrobins.com',
+                'api_key'    => 'LKabc',
+                'api_secret' => 'secret',
+            ])),
+        ]);
 
         $this->assertNull($client->fetchConfig('KEY'));
     }
@@ -139,5 +151,57 @@ class ChirpClientTest extends MockeryTestCase
         $client->fetchConfig('KEY');
 
         $this->assertSame('https://staging.example.test/chirp/config', (string) $this->history[0]['request']->getUri());
+    }
+
+    #[Test]
+    public function minting_sends_a_discussion_id_and_never_a_room_name(): void
+    {
+        $client = $this->client([
+            new Response(200, [], json_encode([
+                'endpoint' => 'wss://chirp.linkrobins.com',
+                'room'     => 'acme-x1y2z-d152',
+                'token'    => 'JWT',
+            ])),
+        ]);
+
+        $grant = $client->mintToken($this->channel(), 152, 'participant', [
+            'identity' => 'u7', 'name' => 'Karl', 'publish' => true,
+        ]);
+
+        $this->assertSame([
+            'endpoint' => 'wss://chirp.linkrobins.com',
+            'room'     => 'acme-x1y2z-d152',
+            'token'    => 'JWT',
+        ], $grant);
+
+        $body = (string) $this->history[0]['request']->getBody();
+        $this->assertSame('https://linkrobins.com/chirp/token', (string) $this->history[0]['request']->getUri());
+        $this->assertStringContainsString('discussion=152', $body);
+        $this->assertStringContainsString('token=SETUP', $body);
+        // The tenant boundary: the service picks the room, we never propose one.
+        $this->assertStringNotContainsString('room=', $body);
+    }
+
+    #[Test]
+    public function minting_without_a_setup_token_does_not_call_the_service(): void
+    {
+        $client = $this->client([]);
+        $channel = new \LinkRobins\Chirp\Channel('acme', 'wss://x', '', 6, false, true);
+
+        $this->assertNull($client->mintToken($channel, 152));
+        $this->assertCount(0, $this->history);
+    }
+
+    #[Test]
+    public function a_mint_response_without_a_room_is_null(): void
+    {
+        $client = $this->client([new Response(200, [], json_encode(['token' => 'JWT']))]);
+
+        $this->assertNull($client->mintToken($this->channel(), 152));
+    }
+
+    private function channel(): \LinkRobins\Chirp\Channel
+    {
+        return new \LinkRobins\Chirp\Channel('acme', 'wss://chirp.linkrobins.com', 'SETUP', 6, false, true);
     }
 }

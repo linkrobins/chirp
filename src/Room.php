@@ -41,9 +41,9 @@ class Room extends AbstractModel
         return $this->belongsTo(User::class);
     }
 
-    /** The LiveKit room name for a discussion — stable and collision-free. */
-    public static function nameFor(int $discussionId): string
-    {
-        return 'd' . $discussionId;
-    }
+    // The LiveKit room name is no longer computed here. Every forum shares one
+    // media server, so `d{id}` collided the moment two of them had a discussion
+    // with the same id. The service derives the name from the channel a setup
+    // token resolves to and returns it with each grant, which is what keeps one
+    // forum from naming — and so joining — another's room.
 }

@@ -3,23 +3,26 @@
 namespace LinkRobins\Chirp;
 
 /**
- * One connected Chirp channel: a dedicated audio server on the hosted
- * service, exchanged from one pasted channel key. A forum may connect
- * several — each powers ONE designated voice channel plus one live
- * broadcast at a time (the Discord shape: more standing rooms = more
- * channels).
+ * One connected Chirp channel, exchanged from one pasted channel key. A forum
+ * may connect several — each powers ONE designated voice channel plus one live
+ * broadcast at a time (the Discord shape: more standing rooms = more channels).
  *
  * `handle` is the service-side stable name for the channel; it survives
- * credential rotation (the key/secret change, the handle doesn't), so it's
- * what room rows bind to.
+ * credential rotation, so it's what room rows bind to.
+ *
+ * This object deliberately holds no LiveKit signing key. Every forum now shares
+ * one media server, and LiveKit does not bind an API key to a room prefix, so a
+ * forum holding a signing secret could mint a grant for another forum's room.
+ * The secret stays on the service; `setupToken` is what we authenticate WITH
+ * when asking it for a grant, and it only ever yields rooms belonging to this
+ * channel.
  */
 class Channel
 {
     public function __construct(
         public readonly string $handle,
         public readonly string $endpoint,
-        public readonly string $apiKey,
-        public readonly string $apiSecret,
+        public readonly string $setupToken,
         public readonly int $speakerSlots,
         public readonly bool $recordings,
         public readonly bool $connected,
@@ -37,8 +40,7 @@ class Channel
         return new self(
             handle: (string) ($data['handle'] ?? ''),
             endpoint: (string) ($data['endpoint'] ?? ''),
-            apiKey: (string) ($data['api_key'] ?? ''),
-            apiSecret: (string) ($data['api_secret'] ?? ''),
+            setupToken: (string) ($data['setup_token'] ?? ''),
             speakerSlots: max(1, (int) ($data['speaker_slots'] ?? 1)),
             recordings: (bool) ($data['recordings'] ?? false),
             connected: (bool) ($data['connected'] ?? false),
@@ -50,8 +52,7 @@ class Channel
         return [
             'handle'        => $this->handle,
             'endpoint'      => $this->endpoint,
-            'api_key'       => $this->apiKey,
-            'api_secret'    => $this->apiSecret,
+            'setup_token'   => $this->setupToken,
             'speaker_slots' => $this->speakerSlots,
             'recordings'    => $this->recordings,
             'connected'     => $this->connected,

@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
 /**
  * POST /api/chirp/recordings — the hosted service delivers a finished
  * recording. Auth is the channel trust chain itself: the raw body is
- * HMAC-SHA256-signed with this forum's api_secret (X-Chirp-Signature,
+ * HMAC-SHA256-signed with this channel's setup token (X-Chirp-Signature,
  * key named by X-Chirp-Key).
  *
  * This handler only verifies and queues: the actual pull of the audio (a
@@ -46,14 +46,14 @@ class ReceiveRecordingController implements RequestHandlerInterface
 
         // X-Chirp-Key names WHICH channel signed the delivery — different
         // channels are different servers with different secrets.
-        $channel = $this->channels->byApiKey($request->getHeaderLine('X-Chirp-Key'));
-        if (!$channel || $channel->apiSecret === '') {
+        $channel = $this->channels->byDeliveryKey($request->getHeaderLine('X-Chirp-Key'));
+        if (!$channel || $channel->setupToken === '') {
             return new JsonResponse(['error' => 'bad signature'], 401);
         }
 
         $raw = (string) $request->getBody();
         $sig = $request->getHeaderLine('X-Chirp-Signature');
-        if (!hash_equals(hash_hmac('sha256', $raw, $channel->apiSecret), $sig)) {
+        if (!hash_equals(hash_hmac('sha256', $raw, $channel->setupToken), $sig)) {
             return new JsonResponse(['error' => 'bad signature'], 401);
         }
 

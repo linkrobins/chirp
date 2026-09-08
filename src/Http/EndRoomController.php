@@ -49,7 +49,7 @@ class EndRoomController implements RequestHandlerInterface
 
         $room->delete();
         if ($channel) {
-            $this->rooms->deleteRoom($channel, Room::nameFor($discussionId));
+            $this->rooms->deleteRoom($channel, $discussionId);
         }
 
         return new EmptyResponse(204);

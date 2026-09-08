@@ -12,7 +12,7 @@ use LinkRobins\Chirp\Exception\NotConfiguredException;
 use LinkRobins\Chirp\Exception\SlotsFullException;
 use LinkRobins\Chirp\Exception\SpeakDeniedException;
 use LinkRobins\Chirp\Hand;
-use LinkRobins\Chirp\LiveKit\AccessToken;
+use LinkRobins\Chirp\ChirpClient;
 use LinkRobins\Chirp\LiveKit\RoomService;
 use LinkRobins\Chirp\Room;
 use Psr\Http\Message\ResponseInterface;
@@ -32,7 +32,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 class JoinTokenController implements RequestHandlerInterface
 {
     public function __construct(
-        protected AccessToken $tokens,
+        protected ChirpClient $service,
         protected RoomService $rooms,
         protected Channels $channels,
     ) {
@@ -54,14 +54,14 @@ class JoinTokenController implements RequestHandlerInterface
         /** @var Room $room */
         $room = Room::query()->where('discussion_id', $discussion->id)->firstOrFail();
 
-        // The channel this room runs on — tokens, slot counts and the
-        // signaling endpoint are all per-channel.
+        // The channel this room runs on. Tokens are minted by the service now,
+        // which derives the room name from this channel — the forum never names
+        // a room, which is what keeps tenants apart on the shared server.
         $channel = $this->channels->forRoom($room);
         if (!$channel) {
             throw new NotConfiguredException();
         }
 
-        $roomName    = Room::nameFor($discussion->id);
         $wantsToTalk = (bool) Arr::get($request->getParsedBody(), 'speak', false);
         $canPublish  = false;
 
@@ -83,7 +83,7 @@ class JoinTokenController implements RequestHandlerInterface
                 }
             }
 
-            $publishers = $this->rooms->publisherCount($channel, $roomName);
+            $publishers = $this->rooms->publisherCount($channel, (int) $discussion->id);
             if ($publishers === null || $publishers >= $channel->speakerSlots) {
                 throw new SlotsFullException();
             }
@@ -95,9 +95,19 @@ class JoinTokenController implements RequestHandlerInterface
         $identity = $actor->isGuest() ? 'g' . Str::lower(Str::random(12)) : 'u' . $actor->id;
         $name     = $actor->isGuest() ? 'Guest' : $actor->display_name;
 
+        $grant = $this->service->mintToken($channel, (int) $discussion->id, 'participant', [
+            'identity' => $identity,
+            'name'     => $name,
+            'publish'  => $canPublish,
+        ]);
+
+        if (!$grant) {
+            throw new NotConfiguredException();
+        }
+
         return new JsonResponse([
-            'endpoint'   => $channel->endpoint,
-            'token'      => $this->tokens->forParticipant($channel, $roomName, $identity, $name, $canPublish),
+            'endpoint'   => $grant['endpoint'],
+            'token'      => $grant['token'],
             'canPublish' => $canPublish,
         ]);
     }

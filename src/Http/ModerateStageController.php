@@ -59,14 +59,13 @@ class ModerateStageController implements RequestHandlerInterface
             return new JsonResponse(['error' => 'not configured'], 409);
         }
 
-        $roomName = Room::nameFor($discussionId);
         if ($action === 'kick') {
-            $this->rooms->removeParticipant($channel, $roomName, $identity);
+            $this->rooms->removeParticipant($channel, $discussionId, $identity);
         } elseif ($action === 'mute') {
             // Voice channels: a soft hand — server-side track mute.
-            $this->rooms->muteAudio($channel, $roomName, $identity);
+            $this->rooms->muteAudio($channel, $discussionId, $identity);
         } else {
-            $this->rooms->revokePublish($channel, $roomName, $identity);
+            $this->rooms->revokePublish($channel, $discussionId, $identity);
         }
 
         // Hand mode: an approved hand would put the mic straight back —
