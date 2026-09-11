@@ -67,6 +67,5 @@ app.initializers.add('linkrobins-chirp', () => {
         permission: 'discussion.chirpSpeak',
       },
       'reply'
-    )
-    .registerPermission('moderate');
+    );
 });
