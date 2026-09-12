@@ -101,5 +101,6 @@ return [
         ->status('chirp_channel_busy', 409)
         ->status('chirp_channels_exhausted', 409)
         ->status('chirp_slots_full', 409)
+        ->status('chirp_site_full', 409)
         ->status('chirp_speak_denied', 403),
 ];
