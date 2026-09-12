@@ -6,6 +6,7 @@ use Flarum\Foundation\Config;
 use Flarum\Settings\SettingsRepositoryInterface;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use LinkRobins\Chirp\Exception\SiteFullException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -119,6 +120,13 @@ class ChirpClient
                 'http_errors'     => false,
             ]);
 
+            // 429 is the one refusal that is not a fault: the site's plan is
+            // at its capacity, and the person should be told that rather than
+            // "not configured", which is what a null grant becomes.
+            if ($response->getStatusCode() === 429) {
+                throw new SiteFullException();
+            }
+
             if ($response->getStatusCode() !== 200) {
                 $this->log->warning('Chirp: token mint failed', ['status' => $response->getStatusCode(), 'scope' => $scope]);
                 return null;
@@ -134,6 +142,8 @@ class ChirpClient
                 'room'     => (string) $data['room'],
                 'token'    => (string) $data['token'],
             ];
+        } catch (SiteFullException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             $this->log->warning('Chirp: token mint threw', ['error' => $e->getMessage()]);
             return null;

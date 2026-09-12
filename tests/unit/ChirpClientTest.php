@@ -199,6 +199,18 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->mintToken($this->channel(), 152));
     }
 
+    #[Test]
+    public function a_site_at_capacity_is_a_typed_refusal_not_a_null_grant(): void
+    {
+        // The service answers 429 when as many people are in voice across the
+        // site's rooms as its plan allows. That is the one refusal the person
+        // must hear about as itself, not as "Chirp isn't set up".
+        $client = $this->client([new Response(429, [], json_encode(['error' => 'capacity', 'cap' => 25, 'in_voice' => 25]))]);
+
+        $this->expectException(\LinkRobins\Chirp\Exception\SiteFullException::class);
+        $client->mintToken($this->channel(), 152, 'participant', ['identity' => 'u7', 'name' => 'Karl']);
+    }
+
     private function channel(): \LinkRobins\Chirp\Channel
     {
         return new \LinkRobins\Chirp\Channel('acme', 'wss://chirp.linkrobins.com', 'SETUP', 6, false, true);

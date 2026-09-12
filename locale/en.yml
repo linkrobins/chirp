@@ -134,4 +134,5 @@ linkrobins-chirp:
       chirp_channel_busy_message: Every channel already has a live room. End one first, or add another channel for more simultaneous rooms.
       chirp_channels_exhausted_message: Every channel already powers a voice channel — add another channel on linkrobins.com to open more.
       chirp_slots_full_message: Every speaker slot is taken right now — you can keep listening, and grab the mic when someone steps down.
+      chirp_site_full_message: This forum's rooms are at capacity right now — as many people are in voice as its Chirp plan allows. Try again when someone leaves.
       chirp_speak_denied_message: The host decides who speaks in this room — raise your hand or keep listening.
