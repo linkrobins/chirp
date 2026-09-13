@@ -22,7 +22,8 @@ app.initializers.add('linkrobins-chirp', () => {
     );
   };
 
-  app.registry
+  // `app.extensionData`, not 2.0's `app.registry`: same object, renamed in 2.0.
+  app.extensionData
     .for('linkrobins-chirp')
     .registerSetting(banner, 100)
     // Multi-channel keys: self-saving list (each save runs the exchange).

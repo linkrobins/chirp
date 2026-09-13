@@ -37,7 +37,7 @@ html.chirp-blend {
   border-radius: 999px;
   background: var(--chirp-hot);
   color: var(--chirp-on-hot);
-  font-size: calc(10px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(10px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   letter-spacing: 0.4px;
   line-height: 1.5;
@@ -102,7 +102,7 @@ html.chirp-blend {
     right: 11px;
     pointer-events: none;
     color: var(--chirp-cool);
-    font-size: calc(11px * var(--lr-ui-scale, 1));
+    font-size: ~"calc(11px * var(--lr-ui-scale, 1))";
     line-height: 1;
   }
 }
@@ -114,7 +114,7 @@ html.chirp-blend {
   max-width: 190px;
   height: 32px;
   padding: 2px 28px 2px 12px;
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
   font-weight: 600;
   color: var(--body-color);
   border-radius: 999px;
@@ -164,7 +164,7 @@ html.chirp-blend {
   // away. Offsets clear Flarum's affixed header (52px, tablet-up only) and
   // any pinned site chrome (--lr-chrome-h, 0 when there is none).
   position: sticky;
-  top: calc(var(--lr-chrome-h, 0px) + 8px);
+  top: ~"calc(var(--lr-chrome-h, 0px) + 8px)";
   z-index: 3;
 
   &.ChirpBar--active {
@@ -214,7 +214,7 @@ html.chirp-blend {
 
 @media (min-width: 768px) {
   .ChirpBar {
-    top: calc(var(--lr-chrome-h, 0px) + 60px);
+    top: ~"calc(var(--lr-chrome-h, 0px) + 60px)";
   }
 }
 
@@ -235,7 +235,7 @@ html.chirp-blend {
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   border: 2px solid transparent;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
@@ -255,10 +255,10 @@ html.chirp-blend {
       border-radius: 50%;
       background: linear-gradient(
         to bottom right,
-        transparent calc(50% - 1px),
-        fade(#000, 55%) calc(50% - 1px),
-        fade(#000, 55%) calc(50% + 1px),
-        transparent calc(50% + 1px)
+        transparent ~"calc(50% - 1px)",
+        fade(#000, 55%) ~"calc(50% - 1px)",
+        fade(#000, 55%) ~"calc(50% + 1px)",
+        transparent ~"calc(50% + 1px)"
       );
     }
   }
@@ -269,12 +269,12 @@ html.chirp-blend {
   align-items: center;
   gap: 5px;
   color: var(--muted-color);
-  font-size: calc(13px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(13px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   white-space: nowrap;
 
   .icon {
-    font-size: calc(12px * var(--lr-ui-scale, 1));
+    font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
     opacity: 0.75;
   }
 }
@@ -322,7 +322,7 @@ html.chirp-blend {
     right: 8px;
     // Rides above the composer when one is docked down there
     // (--chirp-composer-h is published by the component).
-    bottom: calc(8px + var(--chirp-composer-h, 0px));
+    bottom: ~"calc(8px + var(--chirp-composer-h, 0px))";
     z-index: 20;
     margin: 0;
     gap: 10px 12px;
@@ -335,7 +335,7 @@ html.chirp-blend {
   html.chirp-live .App-content,
   html.chirp-scheduled .App-content,
   html.chirp-recorded .App-content {
-    padding-bottom: calc(116px + var(--chirp-composer-h, 0px));
+    padding-bottom: ~"calc(116px + var(--chirp-composer-h, 0px))";
   }
 
   // Writing a reply takes over the screen — the room steps aside.
@@ -392,7 +392,7 @@ html.chirp-blend {
   border-radius: 999px;
   background: var(--chirp-hot);
   color: var(--chirp-on-hot);
-  font-size: calc(10px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(10px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   letter-spacing: 0.4px;
   line-height: 1.6;
@@ -440,7 +440,7 @@ html.chirp-blend {
 }
 
 .ChirpChip-icon {
-  font-size: calc(9px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(9px * var(--lr-ui-scale, 1))";
   opacity: 0.9;
 }
 
@@ -453,7 +453,7 @@ html.chirp-blend {
   display: flex;
   align-items: center;
   gap: 14px;
-  max-width: min(520px, calc(100vw - 32px));
+  max-width: min(520px, ~"calc(100vw - 32px)");
   padding: 10px 14px;
   border-radius: 12px;
   color: var(--body-color);
@@ -488,7 +488,7 @@ html.chirp-blend {
 
 .ChirpDock-title {
   font-weight: 600;
-  font-size: calc(13px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(13px * var(--lr-ui-scale, 1))";
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -497,7 +497,7 @@ html.chirp-blend {
 .ChirpDock-count {
   color: var(--muted-color);
   font-weight: 700;
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
 }
 
 .ChirpDock-actions {
@@ -512,7 +512,7 @@ html.chirp-blend {
   .ChirpDock {
     left: 8px;
     right: 8px;
-    bottom: calc(8px + var(--chirp-composer-h, 0px));
+    bottom: ~"calc(8px + var(--chirp-composer-h, 0px))";
     max-width: none;
     padding: 10px 12px;
   }
@@ -524,7 +524,7 @@ html.chirp-blend {
   html.chirp-live .ChirpDock,
   html.chirp-scheduled .ChirpDock,
   html.chirp-recorded .ChirpDock {
-    bottom: calc(112px + var(--chirp-composer-h, 0px));
+    bottom: ~"calc(112px + var(--chirp-composer-h, 0px))";
   }
 
   html.chirp-composer-full .ChirpDock {
@@ -643,7 +643,7 @@ html.chirp-blend {
 .ChirpBar--schedule {
   .ChirpSchedule-when {
     color: var(--muted-color);
-    font-size: calc(13px * var(--lr-ui-scale, 1));
+    font-size: ~"calc(13px * var(--lr-ui-scale, 1))";
     white-space: nowrap;
   }
 }
@@ -695,7 +695,7 @@ html.chirp-blend {
 // Talking into a muted mic.
 .ChirpMutedHint {
   color: var(--chirp-hot);
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   white-space: nowrap;
   animation: chirp-reconnect-pulse 1s ease-in-out infinite;
@@ -710,7 +710,7 @@ html.chirp-blend {
 }
 
 .ChirpBar-morecount {
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   color: var(--muted-color);
 }
@@ -721,7 +721,7 @@ html.chirp-blend {
 
 .ChirpRoster-heading {
   margin: 0 0 8px;
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -753,7 +753,7 @@ html.chirp-blend {
   margin-left: 6px;
   font-weight: 400;
   color: var(--muted-color);
-  font-size: calc(12px * var(--lr-ui-scale, 1));
+  font-size: ~"calc(12px * var(--lr-ui-scale, 1))";
 }
 
 .ChirpRoster-muted {

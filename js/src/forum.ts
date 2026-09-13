@@ -3,6 +3,11 @@ import app from 'flarum/forum/app';
 import Application from 'flarum/common/Application';
 import Button from 'flarum/common/components/Button';
 import DiscussionControls from 'flarum/forum/utils/DiscussionControls';
+// 1.8 has no lazy chunks and no string-path extend(), so these are imported
+// directly and extended on the prototype, which is the 1.x form.
+import NotificationGrid from 'flarum/forum/components/NotificationGrid';
+import DiscussionListItem from 'flarum/forum/components/DiscussionListItem';
+import DiscussionPage from 'flarum/forum/components/DiscussionPage';
 import m from 'mithril';
 
 import ChirpState from './ChirpState';
@@ -51,7 +56,7 @@ app.initializers.add('linkrobins-chirp', () => {
   // Followers hear about rooms opening.
   app.notificationComponents.chirpRoomStarted = ChirpRoomStartedNotification as any;
   app.notificationComponents.chirpRoomScheduled = ChirpRoomScheduledNotification as any;
-  extend('flarum/forum/components/NotificationGrid', 'notificationTypes', function (this: any, items: any) {
+  extend(NotificationGrid.prototype, 'notificationTypes', function (this: any, items: any) {
     items.add('chirpRoomStarted', {
       name: 'chirpRoomStarted',
       icon: 'fas fa-microphone',
@@ -67,7 +72,7 @@ app.initializers.add('linkrobins-chirp', () => {
   // Discussion rows are frozen by Flarum's SubtreeRetainer unless their
   // tracked data changes, so the chip would never repaint when you join or
   // leave. Register the bits of room state the chip renders from.
-  extend('flarum/forum/components/DiscussionListItem', 'oninit', function (this: any) {
+  extend(DiscussionListItem.prototype, 'oninit', function (this: any) {
     this.subtree?.check?.(
       () => state.discussionId,
       () => state.connecting
@@ -76,7 +81,7 @@ app.initializers.add('linkrobins-chirp', () => {
 
   // The full room toolbar rides in the list row itself — below the title,
   // tags and last-reply line — so you can listen straight from the index.
-  extend('flarum/forum/components/DiscussionListItem', 'view', function (this: any, vnode: any) {
+  extend(DiscussionListItem.prototype, 'view', function (this: any, vnode: any) {
     const discussion = this.attrs.discussion;
     // The list payload is CACHED across navigation, so a row's chirpIsLive
     // can be stale — but the room you're CONNECTED to is definitionally
@@ -154,7 +159,7 @@ app.initializers.add('linkrobins-chirp', () => {
   // beside the tag chips and looks wedged in. Here it gets its own full-width
   // row directly over the conversation it belongs to. When the room is over,
   // remains (the live bar owns the spot while a room is actually on).
-  extend('flarum/forum/components/DiscussionPage', 'view', function (this: any, vnode: any) {
+  extend(DiscussionPage.prototype, 'view', function (this: any, vnode: any) {
     const discussion = this.discussion;
     if (!discussion || !vnode || !Array.isArray(vnode.children)) return;
 

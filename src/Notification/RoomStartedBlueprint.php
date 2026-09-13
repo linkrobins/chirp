@@ -4,7 +4,6 @@ namespace LinkRobins\Chirp\Notification;
 
 use Flarum\Database\AbstractModel;
 use Flarum\Discussion\Discussion;
-use Flarum\Notification\AlertableInterface;
 use Flarum\Notification\Blueprint\BlueprintInterface;
 use Flarum\User\User;
 
@@ -14,7 +13,7 @@ use Flarum\User\User;
  * worth showing up to). Alert-only by default; users can enable email in
  * their own notification preferences.
  */
-class RoomStartedBlueprint implements BlueprintInterface, AlertableInterface
+class RoomStartedBlueprint implements BlueprintInterface
 {
     public function __construct(
         protected Discussion $discussion,

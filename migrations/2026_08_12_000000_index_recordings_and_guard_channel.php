@@ -16,6 +16,35 @@ use Illuminate\Database\Schema\Builder;
  *    column missing, this adds it. Every other schema migration in the
  *    extension is re-runnable and that one wasn't.
  */
+/**
+ * Whether a composite index already covers exactly these columns.
+ *
+ * `Schema\Builder::hasIndex()` is a Laravel 11 method and Flarum 1.8 ships
+ * Laravel 8, where calling it is a fatal that aborts enabling the extension.
+ * doctrine/dbal comes with 1.8 and answers the same question; a failure to
+ * introspect is treated as "not there", because the worst case is then a
+ * duplicate-index error on a re-run rather than a silently missing index.
+ *
+ * @param list<string> $columns
+ */
+function indexExists(Builder $schema, string $table, array $columns): bool
+{
+    try {
+        $connection = $schema->getConnection();
+        $manager = $connection->getDoctrineSchemaManager();
+
+        foreach ($manager->listTableIndexes($connection->getTablePrefix() . $table) as $index) {
+            if ($index->getColumns() === $columns) {
+                return true;
+            }
+        }
+    } catch (\Throwable) {
+        return false;
+    }
+
+    return false;
+}
+
 return [
     'up' => function (Builder $schema) {
         if (!$schema->hasColumn('chirp_rooms', 'channel')) {
@@ -24,7 +53,7 @@ return [
             });
         }
 
-        if ($schema->hasIndex('chirp_recordings', ['discussion_id', 'status'])) {
+        if (indexExists($schema, 'chirp_recordings', ['discussion_id', 'status'])) {
             return;
         }
 

@@ -16,8 +16,15 @@
 export default class ComposerTracker {
   private composerWatch?: ResizeObserver;
   private domWatch?: MutationObserver;
+  private marker: string;
 
-  constructor(private marker: string) {}
+  // Written out rather than declared as a constructor parameter property:
+  // the 1.x build (flarum-webpack-config 2) runs an older Babel TypeScript
+  // preset that cannot parse `constructor(private marker: string)` and fails
+  // the build on it. Same semantics, portable across both toolchains.
+  constructor(marker: string) {
+    this.marker = marker;
+  }
 
   start(): void {
     document.documentElement.classList.add(this.marker);

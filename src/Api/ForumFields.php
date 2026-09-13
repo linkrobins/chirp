@@ -2,7 +2,7 @@
 
 namespace LinkRobins\Chirp\Api;
 
-use Flarum\Api\Schema;
+use Flarum\Api\Serializer\AbstractSerializer;
 use LinkRobins\Chirp\Channels;
 
 /**
@@ -16,6 +16,10 @@ use LinkRobins\Chirp\Channels;
  * the single live discussion id it was in v1.0. Only live SHOWS count:
  * designated voice channels are standing places on their own separate slot
  * and never make a channel read as busy.
+ *
+ * 1.x shape: an `Extend\ApiSerializer->attributes()` mutator rather than 2.0's
+ * typed field objects. The values are identical to the 2.x line and must stay
+ * that way; the shared frontend reads both.
  */
 class ForumFields
 {
@@ -23,32 +27,29 @@ class ForumFields
     {
     }
 
-    public function __invoke(): array
+    /**
+     * @param array<string, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    public function __invoke(AbstractSerializer $serializer, mixed $model, array $attributes): array
     {
-        return [
-            Schema\Boolean::make('chirpLiveFree')
-                ->get(function () {
-                    try {
-                        return $this->channels->freeForLive() !== null;
-                    } catch (\Throwable) {
-                        // Fail OPEN: the start endpoint enforces for real; a
-                        // read hiccup here must not grey out Go live.
-                        return true;
-                    }
-                }),
+        try {
+            $attributes['chirpLiveFree'] = $this->channels->freeForLive() !== null;
+        } catch (\Throwable) {
+            // Fail OPEN: the start endpoint enforces for real; a read hiccup
+            // here must not grey out Go live.
+            $attributes['chirpLiveFree'] = true;
+        }
 
-            // Voice-channel occupancy, for the admin panel ("2 of 3
-            // channels power a voice channel"). Serialized as "used/total".
-            Schema\Str::make('chirpChannelSlots')
-                ->get(function () {
-                    try {
-                        [$used, $total] = $this->channels->persistentSlots();
+        // Voice-channel occupancy, for the admin panel ("2 of 3 channels
+        // power a voice channel"). Serialized as "used/total".
+        try {
+            [$used, $total] = $this->channels->persistentSlots();
+            $attributes['chirpChannelSlots'] = $used . '/' . $total;
+        } catch (\Throwable) {
+            $attributes['chirpChannelSlots'] = '0/0';
+        }
 
-                        return $used . '/' . $total;
-                    } catch (\Throwable) {
-                        return '0/0';
-                    }
-                }),
-        ];
+        return $attributes;
     }
 }

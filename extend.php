@@ -60,12 +60,14 @@ return [
         ->listen(Saved::class, ExchangeKeyOnSave::class),
 
     // Live-room state + gates on every discussion payload (fail-closed).
-    (new Extend\ApiResource(\Flarum\Api\Resource\DiscussionResource::class))
-        ->fields(DiscussionFields::class),
+    // 1.x has no resource API, so these are serializer attribute mutators;
+    // the values are identical to the 2.x line by design.
+    (new Extend\ApiSerializer(\Flarum\Api\Serializer\DiscussionSerializer::class))
+        ->attributes(DiscussionFields::class),
 
     // Channel-wide: which discussion (if any) is live right now.
-    (new Extend\ApiResource(\Flarum\Api\Resource\ForumResource::class))
-        ->fields(ForumFields::class),
+    (new Extend\ApiSerializer(\Flarum\Api\Serializer\ForumSerializer::class))
+        ->attributes(ForumFields::class),
 
     (new Extend\Model(\Flarum\Discussion\Discussion::class))
         ->hasOne('chirpRoom', Room::class, 'discussion_id'),
@@ -91,9 +93,19 @@ return [
 
     // Followers hear about rooms opening (alert by default; users can add
     // email in their own preferences).
+    // 1.x's type() takes the SUBJECT serializer as its second argument, which
+    // 2.0 dropped. Both blueprints have a Discussion subject.
     (new Extend\Notification())
-        ->type(\LinkRobins\Chirp\Notification\RoomStartedBlueprint::class, ['alert'])
-        ->type(\LinkRobins\Chirp\Notification\RoomScheduledBlueprint::class, ['alert']),
+        ->type(
+            \LinkRobins\Chirp\Notification\RoomStartedBlueprint::class,
+            \Flarum\Api\Serializer\BasicDiscussionSerializer::class,
+            ['alert']
+        )
+        ->type(
+            \LinkRobins\Chirp\Notification\RoomScheduledBlueprint::class,
+            \Flarum\Api\Serializer\BasicDiscussionSerializer::class,
+            ['alert']
+        ),
 
     // Expected domain failures → clean 4xx with locale-keyed messages.
     (new Extend\ErrorHandling())
