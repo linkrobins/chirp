@@ -173,6 +173,16 @@ html.chirp-blend {
   }
 }
 
+// 1.8 only: on 2.0 the bar is the first child of .Page-content, which carries
+// a 10px top margin, so it clears the hero. 1.8 has no equivalent gap — the
+// bar goes inside .DiscussionPage-stream, whose top edge is the hero's bottom
+// edge, and the bar ends up touching it. Re-create the same 10px so the two
+// majors look identical. Only the in-flow position moves; once the bar sticks,
+// `top` above governs.
+.DiscussionPage-stream > .ChirpBar {
+  margin-top: 10px;
+}
+
 .ChirpBar-live {
   display: inline-flex;
   align-items: center;
