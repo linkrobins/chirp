@@ -31,6 +31,7 @@ class RoomScheduledBlueprint implements BlueprintInterface, AlertableInterface
         return $this->discussion;
     }
 
+    /** @return array{startsAt:string} */
     public function getData(): array
     {
         return ['startsAt' => $this->startsAt];

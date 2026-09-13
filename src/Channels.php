@@ -144,6 +144,7 @@ class Channels
     /** Voice-channel occupancy for the admin panel: [used, total]. `used`
      *  can EXCEED total on grandfathered installs (v1.0 allowed unlimited
      *  designations) — show the honest number, don't clamp it. */
+    /** @return array{0:int,1:int} */
     public function persistentSlots(): array
     {
         return [

@@ -34,6 +34,7 @@ class Channel
         return preg_replace('/^wss:/', 'https:', $this->endpoint) ?? '';
     }
 
+    /** @param array<string, mixed> $data one channel's row from the service payload */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -45,6 +46,7 @@ class Channel
         );
     }
 
+    /** @return array{handle:string,endpoint:string,setup_token:string,speaker_slots:int,connected:bool} */
     public function toArray(): array
     {
         return [

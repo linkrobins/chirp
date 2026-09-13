@@ -32,6 +32,7 @@ class ChirpClient
     ) {
     }
 
+    /** @return array<string, mixed>|null */
     public function fetchConfig(string $token): ?array
     {
         $token = trim($token);
@@ -94,6 +95,7 @@ class ChirpClient
      *
      * @param string $scope 'participant' for a join grant, 'admin' for a
      *                      sixty-second room-scoped moderation grant.
+     * @param array<string, mixed> $participant identity/name attached to the grant
      * @return array{endpoint:string,room:string,token:string}|null
      */
     public function mintToken(Channel $channel, int $discussionId, string $scope = 'participant', array $participant = []): ?array
@@ -162,6 +164,8 @@ class ChirpClient
      * derives from our channel.
      *
      * @param string $action create | delete | exists
+     * @param array<string, mixed> $metadata stamped on the room at creation
+     * @return array<string, mixed>|null the service's decoded JSON, null on any failure
      */
     public function roomOp(Channel $channel, int $discussionId, string $action, array $metadata = []): ?array
     {

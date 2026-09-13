@@ -64,6 +64,10 @@ composer require linkrobins/flarum-chirp
 Requires Flarum `^2.0`. The extension is free and open source; it connects to
 your paid Chirp channel and does nothing without one.
 
+## Compatibility
+
+This is the **Flarum 2.x** release line. Flarum 1.8 forums install the 1.x line of the same package, which has the same features and the same settings; Composer picks the right one for your forum on its own.
+
 ## Note on the build
 
 Everything is bundled into `js/dist/forum.js` (no code-splitting): Flarum

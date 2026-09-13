@@ -44,6 +44,7 @@ class RoomsTest extends TestCase
         $this->connectChannels();
     }
 
+    /** @test */
     #[Test]
     public function a_guest_cannot_go_live(): void
     {
@@ -57,6 +58,7 @@ class RoomsTest extends TestCase
         $this->assertContains($response->getStatusCode(), [400, 401]);
     }
 
+    /** @test */
     #[Test]
     public function a_member_without_the_permission_cannot_go_live(): void
     {
@@ -72,6 +74,7 @@ class RoomsTest extends TestCase
         $this->assertEquals(403, $response->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function going_live_without_a_channel_key_is_a_clean_conflict(): void
     {
@@ -86,6 +89,7 @@ class RoomsTest extends TestCase
         $this->assertStringContainsString('chirp_not_configured', (string) $response->getBody());
     }
 
+    /** @test */
     #[Test]
     public function an_admin_goes_live_and_gets_a_publish_token(): void
     {
@@ -114,6 +118,7 @@ class RoomsTest extends TestCase
         $this->assertEquals(1, $this->database()->table('chirp_rooms')->count());
     }
 
+    /** @test */
     #[Test]
     public function the_channel_only_holds_one_live_room(): void
     {
@@ -134,6 +139,7 @@ class RoomsTest extends TestCase
         $this->assertStringContainsString('chirp_channel_busy', (string) $second->getBody());
     }
 
+    /** @test */
     #[Test]
     public function joining_a_discussion_with_no_live_room_is_a_404(): void
     {
@@ -146,6 +152,7 @@ class RoomsTest extends TestCase
         $this->assertEquals(404, $response->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function a_listener_token_never_carries_the_publish_grant(): void
     {

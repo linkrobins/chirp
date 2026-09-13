@@ -22,6 +22,7 @@ class Schedule extends AbstractModel
 
     protected $fillable = ['discussion_id', 'user_id', 'starts_at', 'created_at'];
 
+    /** @var array<string, string> */
     protected $casts = ['starts_at' => 'datetime', 'created_at' => 'datetime'];
 
     public function discussion(): BelongsTo

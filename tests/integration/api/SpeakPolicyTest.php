@@ -65,6 +65,7 @@ class SpeakPolicyTest extends TestCase
         return $this->send($this->request('POST', '/api/chirp/rooms/1/token', ['authenticatedAs' => $userId, 'json' => ['speak' => true]]));
     }
 
+    /** @test */
     #[Test]
     public function op_policy_refuses_a_non_author(): void
     {
@@ -74,6 +75,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(403, $this->mic(3)->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function op_policy_passes_the_author_through_to_the_slot_check(): void
     {
@@ -85,6 +87,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(409, $this->mic(2)->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function hand_policy_refuses_an_unapproved_hand(): void
     {
@@ -94,6 +97,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(403, $this->mic(3)->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function an_approved_hand_unlocks_the_mic(): void
     {
@@ -109,6 +113,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(409, $this->mic(3)->getStatusCode()); // policy passed → slot check
     }
 
+    /** @test */
     #[Test]
     public function a_declined_hand_stays_locked_and_can_reraise(): void
     {
@@ -123,6 +128,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(200, $again->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function raising_a_hand_needs_hand_policy(): void
     {
@@ -132,6 +138,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(409, $response->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function only_the_host_flips_the_policy(): void
     {
@@ -147,6 +154,7 @@ class SpeakPolicyTest extends TestCase
         $this->assertEquals(422, $bad->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function the_hands_list_is_host_only(): void
     {
