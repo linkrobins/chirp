@@ -156,15 +156,25 @@ app.initializers.add('linkrobins-chirp', () => {
 
   // The live bar sits ABOVE THE POST STREAM, not in the hero: the hero renders
   // its items (tags, title, badges) in one <ul>, so a bar added there lines up
-  // beside the tag chips and looks wedged in. Here it gets its own full-width
-  // row directly over the conversation it belongs to. When the room is over,
-  // remains (the live bar owns the spot while a room is actually on).
-  extend(DiscussionPage.prototype, 'view', function (this: any, vnode: any) {
+  // beside the tag chips and looks wedged in.
+  //
+  // 1.x puts the bar INSIDE .DiscussionPage-stream, not beside it. 1.8 renders
+  // .DiscussionPage > .DiscussionPage-discussion > .container > mainContent(),
+  // and mainContent's two items (the scrubber nav and the stream) are floated.
+  // A bar added to that list as its own item is in normal flow, so whatever
+  // priority it gets it ends up cleared BELOW both floats, at the foot of the
+  // conversation under the reply box. Prepending into the stream item's own
+  // children puts it at the top of the conversation column, which is where 2.0
+  // lands it (there view() returns a PageStructure and unshifting works).
+  extend(DiscussionPage.prototype, 'mainContent', function (this: any, items: any) {
     const discussion = this.discussion;
-    if (!discussion || !vnode || !Array.isArray(vnode.children)) return;
+    if (!discussion || !items.has('poststream')) return;
+
+    const stream = items.get('poststream');
+    if (!stream || !Array.isArray(stream.children)) return;
 
     if (discussion.attribute?.('chirpIsLive')) {
-      vnode.children.unshift(m(ChirpBar, { discussion, state }));
+      stream.children.unshift(m(ChirpBar, { discussion, state }));
       return;
     }
 
@@ -172,8 +182,7 @@ app.initializers.add('linkrobins-chirp', () => {
     // host shows up (going live consumes the schedule server-side).
     const scheduledAt = discussion.attribute?.('chirpScheduledAt');
     if (scheduledAt && new Date(String(scheduledAt)).getTime() > Date.now() - 3 * 3600e3) {
-      vnode.children.unshift(m(ChirpScheduleBar, { discussion }));
-      return;
+      stream.children.unshift(m(ChirpScheduleBar, { discussion }));
     }
   });
 
