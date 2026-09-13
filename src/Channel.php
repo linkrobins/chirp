@@ -19,12 +19,19 @@ namespace LinkRobins\Chirp;
  */
 class Channel
 {
+    /**
+     * Plain public properties, not `readonly`: that keyword is PHP 8.1, and
+     * this line targets every PHP that Flarum 1.8 runs on. Nothing mutates a
+     * Channel — it is built once in fromArray() and read from there on — so
+     * the keyword was documentation, not enforcement we depend on. The 2.x
+     * line requires 8.3 and keeps it.
+     */
     public function __construct(
-        public readonly string $handle,
-        public readonly string $endpoint,
-        public readonly string $setupToken,
-        public readonly int $speakerSlots,
-        public readonly bool $connected,
+        public string $handle,
+        public string $endpoint,
+        public string $setupToken,
+        public int $speakerSlots,
+        public bool $connected,
     ) {
     }
 
