@@ -74,6 +74,7 @@ class MultiChannelTest extends TestCase
         $this->connectChannels(['ch-one', 'ch-two']);
     }
 
+    /** @test */
     #[Test]
     public function each_channel_powers_one_voice_channel(): void
     {
@@ -99,6 +100,7 @@ class MultiChannelTest extends TestCase
         $this->assertCount(2, $data['keys']);
     }
 
+    /** @test */
     #[Test]
     public function two_channels_run_two_live_broadcasts_but_not_three(): void
     {
@@ -118,6 +120,7 @@ class MultiChannelTest extends TestCase
         $this->assertEquals(2, $this->database()->table('chirp_rooms')->count());
     }
 
+    /** @test */
     #[Test]
     public function join_token_and_endpoint_come_from_the_rooms_own_channel(): void
     {
@@ -138,6 +141,7 @@ class MultiChannelTest extends TestCase
         $this->assertEquals('ch-two-d1', end($minted)['room']);
     }
 
+    /** @test */
     #[Test]
     public function legacy_null_channel_rooms_bind_to_the_first_connected_channel(): void
     {
@@ -161,6 +165,7 @@ class MultiChannelTest extends TestCase
         $this->assertEquals('ch-two', $this->database()->table('chirp_rooms')->where('discussion_id', 2)->value('channel'));
     }
 
+    /** @test */
     #[Test]
     public function saving_channel_keys_writes_the_channels_json_and_clears_legacy_settings(): void
     {

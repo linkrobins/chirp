@@ -49,6 +49,7 @@ class ChirpClientTest extends MockeryTestCase
         );
     }
 
+    /** @test */
     #[Test]
     public function a_successful_exchange_returns_normalised_config(): void
     {
@@ -78,6 +79,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertStringContainsString('token=CHANNEL-KEY', (string) $request->getBody());
     }
 
+    /** @test */
     #[Test]
     public function missing_slots_default_to_one(): void
     {
@@ -88,6 +90,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertSame(1, $client->fetchConfig('KEY')['speaker_slots']);
     }
 
+    /** @test */
     #[Test]
     public function a_non_200_is_null(): void
     {
@@ -96,6 +99,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->fetchConfig('BAD-KEY'));
     }
 
+    /** @test */
     #[Test]
     public function a_response_missing_an_endpoint_is_null(): void
     {
@@ -104,6 +108,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->fetchConfig('KEY'));
     }
 
+    /** @test */
     #[Test]
     public function a_service_still_handing_out_a_signing_secret_is_refused(): void
     {
@@ -121,6 +126,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->fetchConfig('KEY'));
     }
 
+    /** @test */
     #[Test]
     public function a_transport_failure_is_null_not_a_throw(): void
     {
@@ -131,6 +137,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->fetchConfig('KEY'));
     }
 
+    /** @test */
     #[Test]
     public function a_blank_key_never_makes_a_request(): void
     {
@@ -140,6 +147,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertCount(0, $this->history);
     }
 
+    /** @test */
     #[Test]
     public function the_service_url_setting_overrides_the_default(): void
     {
@@ -152,6 +160,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertSame('https://staging.example.test/chirp/config', (string) $this->history[0]['request']->getUri());
     }
 
+    /** @test */
     #[Test]
     public function minting_sends_a_discussion_id_and_never_a_room_name(): void
     {
@@ -181,6 +190,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertStringNotContainsString('room=', $body);
     }
 
+    /** @test */
     #[Test]
     public function minting_without_a_setup_token_does_not_call_the_service(): void
     {
@@ -191,6 +201,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertCount(0, $this->history);
     }
 
+    /** @test */
     #[Test]
     public function a_mint_response_without_a_room_is_null(): void
     {
@@ -199,6 +210,7 @@ class ChirpClientTest extends MockeryTestCase
         $this->assertNull($client->mintToken($this->channel(), 152));
     }
 
+    /** @test */
     #[Test]
     public function a_site_at_capacity_is_a_typed_refusal_not_a_null_grant(): void
     {

@@ -16,14 +16,6 @@ parameters:
     # keeps it from ever looking.
     databaseMigrationsPath: ['migrations']
 
-    # This branch runs PHPStan 1.x, whose level 6 still demands a value type on
-    # every iterable; PHPStan 2.0 dropped that from level 6, so the 2.x branch
-    # analyses the same source clean without the annotations. Turning it off
-    # here means both branches enforce the SAME rules on what is deliberately
-    # the same code, rather than the 1.x line carrying ~17 annotations the 2.x
-    # line does not and drifting apart on style.
-    checkMissingIterableValueType: false
-
     ignoreErrors:
         # `Room::created_at` is NOT NULL in the schema, so PHPStan is right
         # that the guard cannot be false for a row that came from a query.

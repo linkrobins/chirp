@@ -29,6 +29,7 @@ class Room extends AbstractModel
 
     protected $fillable = ['discussion_id', 'user_id', 'created_at', 'speak_policy', 'mode', 'channel'];
 
+    /** @var array<string, string> */
     protected $casts = ['created_at' => 'datetime'];
 
     public function discussion(): BelongsTo

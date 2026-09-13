@@ -32,6 +32,7 @@ class RoomStartedBlueprint implements BlueprintInterface
         return $this->discussion;
     }
 
+    /** @return array{mode:string} */
     public function getData(): array
     {
         return ['mode' => $this->mode];

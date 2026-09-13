@@ -25,7 +25,11 @@ use Psr\Log\LoggerInterface;
  */
 class RoomService
 {
-    /** Grants are good for a minute; one lookup serves a burst of calls. */
+    /**
+     * Grants are good for a minute; one lookup serves a burst of calls.
+     *
+     * @var array<string, array{endpoint:string,room:string,token:string}|null>
+     */
     private array $grants = [];
 
     public function __construct(
@@ -138,6 +142,7 @@ class RoomService
      * LiveKit side; fail-soft here — a failed call means the room simply
      * starts unrecorded, never that going live breaks.
      */
+    /** @param array<string, mixed> $metadata stamped on the room at creation */
     public function createRoom(Channel $channel, int $discussionId, array $metadata): void
     {
         $this->service->roomOp($channel, $discussionId, 'create', $metadata);
@@ -161,6 +166,11 @@ class RoomService
         return $this->grants[$key];
     }
 
+    /**
+     * @param array{endpoint:string,room:string,token:string} $grant
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>|null
+     */
     protected function call(Channel $channel, array $grant, string $method, array $body): ?array
     {
         $base = $channel->httpEndpoint();
