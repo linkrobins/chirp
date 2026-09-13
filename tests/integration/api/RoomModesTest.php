@@ -62,6 +62,7 @@ class RoomModesTest extends TestCase
         $this->connectChannels();
     }
 
+    /** @test */
     #[Test]
     public function starting_a_room_notifies_followers_but_not_the_starter(): void
     {
@@ -75,6 +76,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(3, $rows[0]->user_id);
     }
 
+    /** @test */
     #[Test]
     public function designating_a_voice_channel_is_admin_only(): void
     {
@@ -91,6 +93,7 @@ class RoomModesTest extends TestCase
         // Voice channels are never recorded — no pending attribution row.
     }
 
+    /** @test */
     #[Test]
     public function voice_channels_do_not_block_going_live_and_coexist(): void
     {
@@ -110,6 +113,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(409, $busy->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function a_second_voice_channel_needs_a_second_channel(): void
     {
@@ -127,6 +131,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(1, $this->database()->table('chirp_rooms')->count());
     }
 
+    /** @test */
     #[Test]
     public function removing_a_voice_channel_is_admin_only_and_listing_works(): void
     {
@@ -152,6 +157,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(0, $this->database()->table('chirp_rooms')->count());
     }
 
+    /** @test */
     #[Test]
     public function voice_channels_ignore_speaker_policies(): void
     {
@@ -172,6 +178,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(403, $denied->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function mute_is_an_accepted_moderation_action(): void
     {
@@ -187,6 +194,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(422, $self->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function scheduling_is_gated_notifies_followers_and_is_consumed_by_going_live(): void
     {
@@ -218,6 +226,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(0, $this->database()->table('chirp_schedules')->count());
     }
 
+    /** @test */
     #[Test]
     public function cancelling_a_schedule_is_scheduler_or_moderation(): void
     {
@@ -232,6 +241,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(0, $this->database()->table('chirp_schedules')->count());
     }
 
+    /** @test */
     #[Test]
     public function stage_moderation_is_host_only_and_validates(): void
     {
@@ -251,6 +261,7 @@ class RoomModesTest extends TestCase
         $this->assertEquals(200, $ok->getStatusCode());
     }
 
+    /** @test */
     #[Test]
     public function unstaging_declines_an_approved_hand(): void
     {

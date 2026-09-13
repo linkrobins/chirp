@@ -26,6 +26,7 @@ class Hand extends AbstractModel
 
     public $timestamps = false;
 
+    /** @var array<string, string> */
     protected $casts = ['created_at' => 'datetime'];
 
     public function user(): BelongsTo
