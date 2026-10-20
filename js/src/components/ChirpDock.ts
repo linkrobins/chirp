@@ -148,7 +148,8 @@ export default class ChirpDock extends Component<ChirpDockAttrs> {
           Array.from({ length: 8 }, (_, i) => m('span.ChirpWave-bar', { style: { animationDelay: `${(i % 5) * 0.1}s` } }))
         ),
         state.roomPath
-          ? m('a.ChirpDock-title', { href: state.roomPath, oncreate: m.route.link, title: state.roomTitle }, state.roomTitle)
+          ? // `link` is missing from Mithril's `m.route` typings.
+            m('a.ChirpDock-title', { href: state.roomPath, oncreate: (m.route as any).link, title: state.roomTitle }, state.roomTitle)
           : m('span.ChirpDock-title', state.roomTitle),
       ]),
       m('.ChirpDock-actions', [
