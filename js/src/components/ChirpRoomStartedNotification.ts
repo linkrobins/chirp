@@ -5,6 +5,9 @@ import Notification from 'flarum/forum/components/Notification';
  * "X went live in <discussion>" (or opened a voice channel). Clicking lands
  * on the discussion, where the bar has the join button.
  */
+// Core declares `excerpt()` abstract; this notification type has no excerpt, so
+// the method is intentionally left out.
+// @ts-expect-error
 export default class ChirpRoomStartedNotification extends Notification {
   icon() {
     return 'fas fa-microphone';

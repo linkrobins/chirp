@@ -1,9 +1,14 @@
 {
-    "extends": "flarum-tsconfig",
-    "include": ["src/**/*", "../vendor/*/*/js/dist-typings/@types/**/*"],
-    "compilerOptions": {
-        "paths": {
-            "flarum/*": ["../vendor/flarum/core/js/dist-typings/*"]
-        }
+  "extends": "flarum-tsconfig",
+  "include": ["src/**/*", "../vendor/*/*/js/dist-typings/@types/**/*"],
+  "compilerOptions": {
+    // TypeScript 7 removed flarum-tsconfig's `moduleResolution: "Node"`.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    // TypeScript 7 no longer auto-includes @types; forum.ts reads process.env.
+    "types": ["node"],
+    "paths": {
+      "flarum/*": ["../vendor/flarum/core/js/dist-typings/*"]
     }
+  }
 }
